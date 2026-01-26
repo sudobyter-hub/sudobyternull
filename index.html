@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="sudobyter - Pentester & Bug Bounty Hunter Portfolio">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-ancestors 'none';">
+    <title>sudobyter | Pentester & Bug Bounty Hunter</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-container">
+            <a href="#" class="nav-logo">
+                <span class="logo-bracket">[</span>sudobyter<span class="logo-bracket">]</span>
+            </a>
+            <button class="nav-toggle" id="nav-toggle" aria-label="Toggle navigation">
+                <span class="hamburger"></span>
+            </button>
+            <ul class="nav-menu" id="nav-menu">
+                <li><a href="#about" class="nav-link">About</a></li>
+                <li><a href="#skills" class="nav-link">Skills</a></li>
+                <li><a href="#certifications" class="nav-link">Certifications</a></li>
+                <li><a href="#projects" class="nav-link">Projects</a></li>
+                <li><a href="#contact" class="nav-link">Contact</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero" id="hero">
+        <div class="hero-content">
+            <div class="terminal-window">
+                <div class="terminal-header">
+                    <span class="terminal-dot red"></span>
+                    <span class="terminal-dot yellow"></span>
+                    <span class="terminal-dot green"></span>
+                    <span class="terminal-title">~/sudobyter</span>
+                </div>
+                <div class="terminal-body">
+                    <p class="terminal-line">
+                        <span class="prompt">$</span> whoami
+                    </p>
+                    <h1 class="hero-title">
+                        <span class="typing-text" id="typing-text"></span><span class="cursor">_</span>
+                    </h1>
+                    <p class="terminal-line">
+                        <span class="prompt">$</span> cat role.txt
+                    </p>
+                    <p class="hero-subtitle">Pentester <span class="separator">|</span> Bug Bounty Hunter <span class="separator">|</span> Threat Hunter</p>
+                    <p class="terminal-line">
+                        <span class="prompt">$</span> echo $MISSION
+                    </p>
+                    <p class="hero-description">Breaking things to make them secure.</p>
+                </div>
+            </div>
+            <div class="hero-links">
+                <a href="https://github.com/sudobyter-hub" target="_blank" rel="noopener noreferrer" class="social-link" aria-label="GitHub">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+                </a>
+                <a href="https://twitter.com/aliwaleedhum" target="_blank" rel="noopener noreferrer" class="social-link" aria-label="Twitter">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                </a>
+                <a href="https://hackerone.com/sudobyter" target="_blank" rel="noopener noreferrer" class="social-link" aria-label="HackerOne">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7.207 0c-.4836 0-.8774.1407-1.1823.4228-.3044.2826-.4583.6674-.4583 1.1536v20.8472c0 .4862.1539.871.4583 1.1536.3049.2821.6987.4228 1.1823.4228.4836 0 .8774-.1407 1.1823-.4228.3044-.2826.4583-.6674.4583-1.1536V1.5765c0-.4862-.1539-.871-.4583-1.1537C8.0844.1407 7.6906 0 7.207 0zm9.5765 5.507c-.4836 0-.8774.1407-1.1823.4228-.3044.2826-.4583.6674-.4583 1.1536v11.8281c0 .4862.1539.871.4583 1.1536.3049.2821.6987.4228 1.1823.4228.4836 0 .8774-.1407 1.1823-.4228.3044-.2826.4583-.6674.4583-1.1536V7.0834c0-.4862-.1539-.871-.4583-1.1536-.3049-.2821-.6987-.4228-1.1823-.4228z"/></svg>
+                </a>
+                <a href="https://linkedin.com/in/aliwaleedhum" target="_blank" rel="noopener noreferrer" class="social-link" aria-label="LinkedIn">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+                </a>
+            </div>
+            <a href="#about" class="scroll-indicator" aria-label="Scroll to about section">
+                <span class="scroll-arrow"></span>
+            </a>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section class="section about" id="about">
+        <div class="container">
+            <h2 class="section-title"><span class="title-prefix">#</span> About</h2>
+            <div class="about-content">
+                <div class="profile-image-container">
+                    <img src="img/profile.png" alt="sudobyter profile photo" class="profile-image">
+                </div>
+                <div class="terminal-card">
+                    <div class="terminal-header">
+                        <span class="terminal-dot red"></span>
+                        <span class="terminal-dot yellow"></span>
+                        <span class="terminal-dot green"></span>
+                        <span class="terminal-title">about.sh</span>
+                    </div>
+                    <div class="terminal-body">
+                        <p class="terminal-output">
+                            I'm a security researcher passionate about finding vulnerabilities
+                            and helping organizations strengthen their defenses. With a focus
+                            on web application security and network penetration testing, I
+                            spend my time hunting bugs and breaking things—ethically.
+                        </p>
+                        <br>
+                        <p class="terminal-line"><span class="prompt">$</span> cat focus_areas.txt</p>
+                        <ul class="focus-list">
+                            <li><span class="bullet">→</span> Web Application Security</li>
+                            <li><span class="bullet">→</span> API Security Testing</li>
+                            <li><span class="bullet">→</span> Network Penetration Testing</li>
+                            <li><span class="bullet">→</span> Cloud Security Assessment</li>
+                            <li><span class="bullet">→</span> Vulnerability Research</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Skills Section -->
+    <section class="section skills" id="skills">
+        <div class="container">
+            <h2 class="section-title"><span class="title-prefix">#</span> Skills</h2>
+            <div class="skills-grid">
+                <div class="skill-category">
+                    <h3 class="skill-category-title">
+                        <span class="category-icon">⚔️</span> Offensive Security
+                    </h3>
+                    <div class="skill-tags">
+                        <span class="skill-tag">Web App Pentesting</span>
+                        <span class="skill-tag">Network Pentesting</span>
+                        <span class="skill-tag">API Security</span>
+                        <span class="skill-tag">OWASP Top 10</span>
+                        <span class="skill-tag">Social Engineering</span>
+                        <span class="skill-tag">Red Teaming</span>
+                    </div>
+                </div>
+                <div class="skill-category">
+                    <h3 class="skill-category-title">
+                        <span class="category-icon">🛠️</span> Tools & Frameworks
+                    </h3>
+                    <div class="skill-tags">
+                        <span class="skill-tag">Burp Suite</span>
+                        <span class="skill-tag">Nmap</span>
+                        <span class="skill-tag">Metasploit</span>
+                        <span class="skill-tag">SQLMap</span>
+                        <span class="skill-tag">Wireshark</span>
+                        <span class="skill-tag">Nuclei</span>
+                        <span class="skill-tag">ffuf</span>
+                        <span class="skill-tag">Gobuster</span>
+                    </div>
+                </div>
+                <div class="skill-category">
+                    <h3 class="skill-category-title">
+                        <span class="category-icon">💻</span> Programming
+                    </h3>
+                    <div class="skill-tags">
+                        <span class="skill-tag">Python</span>
+                        <span class="skill-tag">Bash</span>
+                        <span class="skill-tag">JavaScript</span>
+                        <span class="skill-tag">Go</span>
+                        <span class="skill-tag">SQL</span>
+                    </div>
+                </div>
+                <div class="skill-category">
+                    <h3 class="skill-category-title">
+                        <span class="category-icon">☁️</span> Platforms
+                    </h3>
+                    <div class="skill-tags">
+                        <span class="skill-tag">Linux</span>
+                        <span class="skill-tag">AWS</span>
+                        <span class="skill-tag">Docker</span>
+                        <span class="skill-tag">Kubernetes</span>
+                        <span class="skill-tag">Active Directory</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Certifications Section -->
+    <section class="section certifications" id="certifications">
+        <div class="container">
+            <h2 class="section-title"><span class="title-prefix">#</span> Certifications</h2>
+            <p class="section-intro">
+                <span class="prompt">$</span> ls ~/certs/
+            </p>
+            <div class="certs-grid">
+                <div class="cert-card">
+                    <div class="cert-logo">
+                        <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                            <defs>
+                                <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" style="stop-color:#1a1a2e"/>
+                                    <stop offset="100%" style="stop-color:#16213e"/>
+                                </linearGradient>
+                            </defs>
+                            <polygon points="50,5 95,27.5 95,72.5 50,95 5,72.5 5,27.5" fill="url(#grad1)" stroke="#ff0040" stroke-width="2"/>
+                            <polygon points="50,15 85,32.5 85,67.5 50,85 15,67.5 15,32.5" fill="none" stroke="#ff0040" stroke-width="1" opacity="0.5"/>
+                            <text x="50" y="45" text-anchor="middle" fill="#ff0040" font-family="monospace" font-size="14" font-weight="bold">eJPT</text>
+                            <text x="50" y="62" text-anchor="middle" fill="#888" font-family="monospace" font-size="7">CERTIFIED</text>
+                        </svg>
+                    </div>
+                    <div class="cert-info">
+                        <h3 class="cert-name">eJPT</h3>
+                        <p class="cert-full">eLearnSecurity Junior Penetration Tester</p>
+                        <span class="cert-issuer">INE Security</span>
+                    </div>
+                </div>
+                <div class="cert-card">
+                    <div class="cert-logo">
+                        <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                            <defs>
+                                <linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" style="stop-color:#1a1a2e"/>
+                                    <stop offset="100%" style="stop-color:#16213e"/>
+                                </linearGradient>
+                            </defs>
+                            <polygon points="50,5 95,27.5 95,72.5 50,95 5,72.5 5,27.5" fill="url(#grad2)" stroke="#ff0040" stroke-width="2"/>
+                            <polygon points="50,15 85,32.5 85,67.5 50,85 15,67.5 15,32.5" fill="none" stroke="#ff0040" stroke-width="1" opacity="0.5"/>
+                            <text x="50" y="45" text-anchor="middle" fill="#ff0040" font-family="monospace" font-size="12" font-weight="bold">eWPT</text>
+                            <text x="50" y="62" text-anchor="middle" fill="#888" font-family="monospace" font-size="7">CERTIFIED</text>
+                        </svg>
+                    </div>
+                    <div class="cert-info">
+                        <h3 class="cert-name">eWPT</h3>
+                        <p class="cert-full">eLearnSecurity Web Application Penetration Tester</p>
+                        <span class="cert-issuer">INE Security</span>
+                    </div>
+                </div>
+                <div class="cert-card">
+                    <div class="cert-logo">
+                        <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                            <defs>
+                                <linearGradient id="grad3" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" style="stop-color:#1a1a2e"/>
+                                    <stop offset="100%" style="stop-color:#16213e"/>
+                                </linearGradient>
+                            </defs>
+                            <polygon points="50,5 95,27.5 95,72.5 50,95 5,72.5 5,27.5" fill="url(#grad3)" stroke="#ff0040" stroke-width="2"/>
+                            <polygon points="50,15 85,32.5 85,67.5 50,85 15,67.5 15,32.5" fill="none" stroke="#ff0040" stroke-width="1" opacity="0.5"/>
+                            <text x="50" y="45" text-anchor="middle" fill="#ff0040" font-family="monospace" font-size="11" font-weight="bold">eWPTX</text>
+                            <text x="50" y="62" text-anchor="middle" fill="#888" font-family="monospace" font-size="7">CERTIFIED</text>
+                        </svg>
+                    </div>
+                    <div class="cert-info">
+                        <h3 class="cert-name">eWPTX</h3>
+                        <p class="cert-full">eLearnSecurity Web Application Penetration Tester eXtreme</p>
+                        <span class="cert-issuer">INE Security</span>
+                    </div>
+                </div>
+                <div class="cert-card">
+                    <div class="cert-logo">
+                        <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                            <defs>
+                                <linearGradient id="grad4" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" style="stop-color:#1a1a2e"/>
+                                    <stop offset="100%" style="stop-color:#16213e"/>
+                                </linearGradient>
+                            </defs>
+                            <polygon points="50,5 95,27.5 95,72.5 50,95 5,72.5 5,27.5" fill="url(#grad4)" stroke="#ff0040" stroke-width="2"/>
+                            <polygon points="50,15 85,32.5 85,67.5 50,85 15,67.5 15,32.5" fill="none" stroke="#ff0040" stroke-width="1" opacity="0.5"/>
+                            <text x="50" y="45" text-anchor="middle" fill="#ff0040" font-family="monospace" font-size="11" font-weight="bold">eCTHP</text>
+                            <text x="50" y="62" text-anchor="middle" fill="#888" font-family="monospace" font-size="7">CERTIFIED</text>
+                        </svg>
+                    </div>
+                    <div class="cert-info">
+                        <h3 class="cert-name">eCTHP</h3>
+                        <p class="cert-full">eLearnSecurity Certified Threat Hunting Professional</p>
+                        <span class="cert-issuer">INE Security</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Projects Section -->
+    <section class="section projects" id="projects">
+        <div class="container">
+            <h2 class="section-title"><span class="title-prefix">#</span> Projects</h2>
+            <div class="projects-grid">
+                <article class="project-card">
+                    <div class="project-header">
+                        <svg class="project-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                        </svg>
+                        <div class="project-links">
+                            <a href="https://github.com/sudobyter-hub/hun2race" class="project-link" aria-label="View on GitHub">
+                                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+                            </a>
+                        </div>
+                    </div>
+                    <h3 class="project-title">Hun2race</h3>
+                    <p class="project-description">
+                        Automated report generation tool for bug hunters and pentesters. Uses AI (ChatGPT/Bard)
+                        to craft vulnerability reports and LaTeX for professional PDF output.
+                    </p>
+                    <div class="project-tags">
+                        <span class="project-tag">Python</span>
+                        <span class="project-tag">AI</span>
+                        <span class="project-tag">Automation</span>
+                    </div>
+                </article>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section class="section contact" id="contact">
+        <div class="container">
+            <h2 class="section-title"><span class="title-prefix">#</span> Contact</h2>
+            <div class="contact-content">
+                <div class="terminal-card">
+                    <div class="terminal-header">
+                        <span class="terminal-dot red"></span>
+                        <span class="terminal-dot yellow"></span>
+                        <span class="terminal-dot green"></span>
+                        <span class="terminal-title">contact.sh</span>
+                    </div>
+                    <div class="terminal-body">
+                        <p class="terminal-line"><span class="prompt">$</span> echo "Let's connect"</p>
+                        <p class="contact-text">
+                            Interested in working together on security projects, have a bug bounty
+                            opportunity, or just want to chat about security? Feel free to reach out.
+                        </p>
+                        <br>
+                        <p class="terminal-line"><span class="prompt">$</span> cat contact_info.txt</p>
+                        <div class="contact-links">
+                            <a id="email-link" href="#" class="contact-link">
+                                <span class="contact-icon">📧</span>
+                                <span id="email-text"></span>
+                            </a>
+                            <a href="https://twitter.com/aliwaleedhum" target="_blank" rel="noopener noreferrer" class="contact-link">
+                                <span class="contact-icon">𝕏</span>
+                                <span>@aliwaleedhum</span>
+                            </a>
+                            <a href="https://github.com/sudobyter-hub" target="_blank" rel="noopener noreferrer" class="contact-link">
+                                <span class="contact-icon">🐙</span>
+                                <span>github.com/sudobyter-hub</span>
+                            </a>
+                            <a href="https://aliwaleed.xyz" target="_blank" rel="noopener noreferrer" class="contact-link">
+                                <span class="contact-icon">🌐</span>
+                                <span>aliwaleed.xyz</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p class="footer-text">
+                <span class="footer-copyright">© <span id="year"></span> sudobyter</span>
+                <span class="footer-separator">|</span>
+                <span class="footer-built">Built with <code>&lt;code&gt;</code></span>
+            </p>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
