@@ -4,10 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="sudobyter - Pentester & Bug Bounty Hunter Portfolio">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-ancestors 'none';">
     <title>sudobyter | Pentester & Bug Bounty Hunter</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -83,7 +82,7 @@
             <h2 class="section-title"><span class="title-prefix">#</span> About</h2>
             <div class="about-content">
                 <div class="profile-image-container">
-                    <img src="https://github.com/sudobyter-hub.png" alt="sudobyter profile photo" class="profile-image">
+                    <img src="img/profile.png" alt="sudobyter profile photo" class="profile-image">
                 </div>
                 <div class="terminal-card">
                     <div class="terminal-header">
@@ -323,9 +322,9 @@
                         <br>
                         <p class="terminal-line"><span class="prompt">$</span> cat contact_info.txt</p>
                         <div class="contact-links">
-                            <a href="mailto:sudobyter@gmail.com" class="contact-link">
+                            <a id="email-link" href="#" class="contact-link">
                                 <span class="contact-icon">📧</span>
-                                <span>sudobyter@gmail.com</span>
+                                <span id="email-text"></span>
                             </a>
                             <a href="https://twitter.com/aliwaleedhum" target="_blank" rel="noopener noreferrer" class="contact-link">
                                 <span class="contact-icon">𝕏</span>
@@ -350,7 +349,7 @@
     <footer class="footer">
         <div class="container">
             <p class="footer-text">
-                <span class="footer-copyright">© <script>document.write(new Date().getFullYear())</script> sudobyter</span>
+                <span class="footer-copyright">© <span id="year"></span> sudobyter</span>
                 <span class="footer-separator">|</span>
                 <span class="footer-built">Built with <code>&lt;code&gt;</code></span>
             </p>

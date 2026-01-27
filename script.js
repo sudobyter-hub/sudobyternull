@@ -32,7 +32,9 @@ document.addEventListener('click', (e) => {
 document.querySelectorAll('a[href^="#"]').forEach(anchor => {
     anchor.addEventListener('click', function(e) {
         e.preventDefault();
-        const target = document.querySelector(this.getAttribute('href'));
+        const href = this.getAttribute('href');
+        if (!/^#[a-zA-Z0-9-]+$/.test(href)) return;
+        const target = document.getElementById(href.substring(1));
         if (target) {
             const headerOffset = 80;
             const elementPosition = target.getBoundingClientRect().top;
@@ -168,7 +170,23 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
+// ===== Dynamic Footer Year =====
+document.getElementById('year').textContent = new Date().getFullYear();
+
+// ===== Email Obfuscation =====
+(function() {
+    var u = 'sudobyter';
+    var d = 'gmail.com';
+    var addr = u + '@' + d;
+    var el = document.getElementById('email-link');
+    var txt = document.getElementById('email-text');
+    if (el && txt) {
+        el.href = 'mailto:' + addr;
+        txt.textContent = addr;
+    }
+})();
+
 // ===== Console Easter Egg =====
 console.log('%c[sudobyter]', 'color: #ff0040; font-size: 20px; font-weight: bold;');
-console.log('%cWelcome, fellow hacker! Looking for bugs? Try my website.', 'color: #888; font-size: 12px;');
+console.log('%cWelcome, fellow hacker!', 'color: #888; font-size: 12px;');
 console.log('%cHappy hunting!', 'color: #00ff00; font-size: 12px;');
