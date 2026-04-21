@@ -10,6 +10,17 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <!-- Boot Overlay -->
+    <div class="boot-overlay" id="boot-overlay" aria-hidden="true">
+        <pre class="boot-log" id="boot-log"></pre>
+    </div>
+
+    <!-- Matrix Rain Canvas -->
+    <canvas id="matrix-canvas" aria-hidden="true"></canvas>
+
+    <!-- Crosshair Reticle Cursor -->
+    <div class="reticle" id="reticle" aria-hidden="true"></div>
+
     <!-- Navigation -->
     <nav class="navbar" id="navbar">
         <div class="nav-container">
@@ -44,7 +55,7 @@
                         <span class="prompt">$</span> whoami
                     </p>
                     <h1 class="hero-title">
-                        <span class="typing-text" id="typing-text"></span><span class="cursor">_</span>
+                        <span class="glitch typing-text" id="typing-text" data-text=""></span><span class="cursor">_</span>
                     </h1>
                     <p class="terminal-line">
                         <span class="prompt">$</span> cat role.txt
@@ -54,6 +65,13 @@
                         <span class="prompt">$</span> echo $MISSION
                     </p>
                     <p class="hero-description">Breaking things to make them secure.</p>
+
+                    <!-- Interactive terminal -->
+                    <div class="live-terminal" id="live-terminal">
+                        <span class="prompt-user">root</span><span class="prompt-at">@</span><span class="prompt-host">sudobyter</span><span class="prompt-path">:~</span><span class="prompt-sign">$</span>
+                        <input type="text" id="term-input" autocomplete="off" spellcheck="false" aria-label="Interactive terminal (try: help)" placeholder="type 'help' and press enter…">
+                    </div>
+                    <div class="terminal-output-log" id="term-log" aria-live="polite"></div>
                 </div>
             </div>
             <div class="hero-links">
@@ -184,18 +202,7 @@
             <div class="certs-grid">
                 <div class="cert-card">
                     <div class="cert-logo">
-                        <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                            <defs>
-                                <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
-                                    <stop offset="0%" style="stop-color:#1a1a2e"/>
-                                    <stop offset="100%" style="stop-color:#16213e"/>
-                                </linearGradient>
-                            </defs>
-                            <polygon points="50,5 95,27.5 95,72.5 50,95 5,72.5 5,27.5" fill="url(#grad1)" stroke="#ff0040" stroke-width="2"/>
-                            <polygon points="50,15 85,32.5 85,67.5 50,85 15,67.5 15,32.5" fill="none" stroke="#ff0040" stroke-width="1" opacity="0.5"/>
-                            <text x="50" y="45" text-anchor="middle" fill="#ff0040" font-family="monospace" font-size="14" font-weight="bold">eJPT</text>
-                            <text x="50" y="62" text-anchor="middle" fill="#888" font-family="monospace" font-size="7">CERTIFIED</text>
-                        </svg>
+                        <img src="img/certs/ejpt.svg" alt="eJPT official badge" loading="lazy" decoding="async">
                     </div>
                     <div class="cert-info">
                         <h3 class="cert-name">eJPT</h3>
@@ -205,18 +212,7 @@
                 </div>
                 <div class="cert-card">
                     <div class="cert-logo">
-                        <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                            <defs>
-                                <linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="100%">
-                                    <stop offset="0%" style="stop-color:#1a1a2e"/>
-                                    <stop offset="100%" style="stop-color:#16213e"/>
-                                </linearGradient>
-                            </defs>
-                            <polygon points="50,5 95,27.5 95,72.5 50,95 5,72.5 5,27.5" fill="url(#grad2)" stroke="#ff0040" stroke-width="2"/>
-                            <polygon points="50,15 85,32.5 85,67.5 50,85 15,67.5 15,32.5" fill="none" stroke="#ff0040" stroke-width="1" opacity="0.5"/>
-                            <text x="50" y="45" text-anchor="middle" fill="#ff0040" font-family="monospace" font-size="12" font-weight="bold">eWPT</text>
-                            <text x="50" y="62" text-anchor="middle" fill="#888" font-family="monospace" font-size="7">CERTIFIED</text>
-                        </svg>
+                        <img src="img/certs/ewpt.svg" alt="eWPT official badge" loading="lazy" decoding="async">
                     </div>
                     <div class="cert-info">
                         <h3 class="cert-name">eWPT</h3>
@@ -226,18 +222,7 @@
                 </div>
                 <div class="cert-card">
                     <div class="cert-logo">
-                        <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                            <defs>
-                                <linearGradient id="grad3" x1="0%" y1="0%" x2="100%" y2="100%">
-                                    <stop offset="0%" style="stop-color:#1a1a2e"/>
-                                    <stop offset="100%" style="stop-color:#16213e"/>
-                                </linearGradient>
-                            </defs>
-                            <polygon points="50,5 95,27.5 95,72.5 50,95 5,72.5 5,27.5" fill="url(#grad3)" stroke="#ff0040" stroke-width="2"/>
-                            <polygon points="50,15 85,32.5 85,67.5 50,85 15,67.5 15,32.5" fill="none" stroke="#ff0040" stroke-width="1" opacity="0.5"/>
-                            <text x="50" y="45" text-anchor="middle" fill="#ff0040" font-family="monospace" font-size="11" font-weight="bold">eWPTX</text>
-                            <text x="50" y="62" text-anchor="middle" fill="#888" font-family="monospace" font-size="7">CERTIFIED</text>
-                        </svg>
+                        <img src="img/certs/ewptx.svg" alt="eWPTX official badge" loading="lazy" decoding="async">
                     </div>
                     <div class="cert-info">
                         <h3 class="cert-name">eWPTX</h3>
@@ -247,18 +232,7 @@
                 </div>
                 <div class="cert-card">
                     <div class="cert-logo">
-                        <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                            <defs>
-                                <linearGradient id="grad4" x1="0%" y1="0%" x2="100%" y2="100%">
-                                    <stop offset="0%" style="stop-color:#1a1a2e"/>
-                                    <stop offset="100%" style="stop-color:#16213e"/>
-                                </linearGradient>
-                            </defs>
-                            <polygon points="50,5 95,27.5 95,72.5 50,95 5,72.5 5,27.5" fill="url(#grad4)" stroke="#ff0040" stroke-width="2"/>
-                            <polygon points="50,15 85,32.5 85,67.5 50,85 15,67.5 15,32.5" fill="none" stroke="#ff0040" stroke-width="1" opacity="0.5"/>
-                            <text x="50" y="45" text-anchor="middle" fill="#ff0040" font-family="monospace" font-size="11" font-weight="bold">eCTHP</text>
-                            <text x="50" y="62" text-anchor="middle" fill="#888" font-family="monospace" font-size="7">CERTIFIED</text>
-                        </svg>
+                        <img src="img/certs/ecthp.svg" alt="eCTHP official badge" loading="lazy" decoding="async">
                     </div>
                     <div class="cert-info">
                         <h3 class="cert-name">eCTHP</h3>
@@ -275,7 +249,7 @@
         <div class="container">
             <h2 class="section-title"><span class="title-prefix">#</span> Projects</h2>
             <div class="projects-grid">
-                <article class="project-card">
+                <article class="project-card" data-id="PROJ-0x01">
                     <div class="project-header">
                         <svg class="project-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
