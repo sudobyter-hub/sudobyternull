@@ -331,22 +331,27 @@ let histPtr = history.length;
 const COMMANDS = {
     help: () => [
         '<span class="k">available commands:</span>',
-        '  <span class="v">help</span>         list commands',
-        '  <span class="v">whoami</span>       who is this guy',
-        '  <span class="v">skills</span>       show skill matrix',
-        '  <span class="v">certs</span>        list certifications',
-        '  <span class="v">projects</span>     list projects',
-        '  <span class="v">contact</span>      how to reach me',
-        '  <span class="v">social</span>       social links',
-        '  <span class="v">banner</span>       print ascii banner',
-        '  <span class="v">date</span>         current date',
-        '  <span class="v">uname</span>        system info',
-        '  <span class="v">neofetch</span>     system report',
-        '  <span class="v">ls</span>           list sections',
-        '  <span class="v">cd &lt;section&gt;</span>  jump to section',
-        '  <span class="v">clear</span>        clear terminal',
-        '  <span class="v">sudo</span>         nice try',
-        '  <span class="v">exit</span>         close terminal',
+        '  <span class="v">help</span>          list commands',
+        '  <span class="v">whoami</span>        who is this guy',
+        '  <span class="v">skills</span>        show skill matrix',
+        '  <span class="v">certs</span>         list certifications',
+        '  <span class="v">projects</span>      list projects',
+        '  <span class="v">blog</span>          list blog posts',
+        '  <span class="v">contact</span>       how to reach me',
+        '  <span class="v">social</span>        social links',
+        '  <span class="v">banner</span>        print ascii banner',
+        '  <span class="v">date</span>          current date',
+        '  <span class="v">uname</span>         system info',
+        '  <span class="v">neofetch</span>      system report',
+        '  <span class="v">ls</span>            list sections',
+        '  <span class="v">cd &lt;section&gt;</span>   jump to section',
+        '  <span class="v">clear</span>         clear terminal',
+        '  <span class="v">exit</span>          close terminal',
+        '',
+        '<span class="k">recon tools (simulated):</span>',
+        '  <span class="v">nmap [flags] &lt;target&gt;</span>  port scanner — try <span class="v">nmap -h</span>',
+        '  <span class="v">targets</span>                list simulated scan targets',
+        '',
         '<span class="hint">↑/↓ for history · tab to autocomplete</span>',
     ].join('\n'),
     whoami: () => 'sudobyter — pentester, bug bounty hunter, threat hunter.\nbreaking things to make them secure.',
@@ -396,7 +401,7 @@ const COMMANDS = {
         '<span class="k">role</span>   : pentester · bug bounty · threat hunter',
         '<span class="k">mood</span>   : caffeinated ☕',
     ].join('\n'),
-    ls: () => 'about/  skills/  certifications/  projects/  contact/',
+    ls: () => 'about/  skills/  certifications/  projects/  blog/  contact/',
     clear: () => { termLog.innerHTML = ''; return null; },
     sudo: () => '<span class="k">[sudo]</span> password for root: <span class="hint">nice try. try the konami code instead ↑↑↓↓←→←→BA</span>',
     exit: () => 'connection closed.',
@@ -404,9 +409,34 @@ const COMMANDS = {
     'rm -rf /': () => '<span class="k">nope.</span> not on my watch.',
     ':q': () => 'this is not vim, but i respect the muscle memory.',
     vim: () => 'this is not vim. (but :q still works)',
+
+    targets: () => [
+        '<span class="k">simulated scan targets:</span>',
+        '  <span class="v">scanme.nmap.org</span>      (45.33.32.156)    classic test target',
+        '  <span class="v">testphp.vulnweb.com</span>  (44.228.249.3)    vulnerable web app',
+        '  <span class="v">dc01.corp.local</span>      (10.10.14.10)     Active Directory DC',
+        '  <span class="v">iot.local</span>            (192.168.1.100)   IoT / telnet box',
+        '  <span class="v">webapp.dev</span>           (10.10.14.42)     CTF-style web + db',
+        '',
+        '<span class="hint">try: nmap -sV -sC -A dc01.corp.local</span>',
+    ].join('\n'),
+
+    blog: () => {
+        const posts = window.BLOG_POSTS || [];
+        if (!posts.length) return '<span class="hint">no posts yet.</span>';
+        const lines = [
+            '<span class="k">latest posts:</span>',
+            ...posts.map(p => `  <span class="v">${p.date}</span>  [${p.category}]  <a href="#blog" data-blog-id="${p.id}" class="blog-inline-link">${p.title}</a>`),
+            '',
+            '<span class="hint">click a title above, or scroll to the blog section.</span>'
+        ];
+        return lines.join('\n');
+    },
 };
 
-function runCommand(raw) {
+let nmapRunning = false;
+
+async function runCommand(raw) {
     const cmd = raw.trim();
     if (!cmd) return;
 
@@ -416,10 +446,17 @@ function runCommand(raw) {
     echo.innerHTML = '<span class="prompt">$</span> ' + escapeHtml(cmd);
     termLog.appendChild(echo);
 
-    // handle cd
+    // nmap — async streaming
+    if (cmd === 'nmap' || cmd.startsWith('nmap ') || cmd.startsWith('nmap\t')) {
+        await runNmapCommand(cmd);
+        pushHistory(cmd);
+        return;
+    }
+
+    // cd
     if (cmd.startsWith('cd ')) {
         const target = cmd.slice(3).trim().replace(/\/$/, '').toLowerCase();
-        const valid = ['about','skills','certifications','certs','projects','contact'];
+        const valid = ['about','skills','certifications','certs','projects','blog','contact'];
         if (valid.includes(target)) {
             const id = target === 'certs' ? 'certifications' : target;
             const el = document.getElementById(id);
@@ -438,15 +475,104 @@ function runCommand(raw) {
         appendResult(`<span class="k">command not found:</span> ${escapeHtml(cmd)}. try <span class="v">help</span>.`);
     }
 
-    // history
+    pushHistory(cmd);
+    termLog.scrollTop = termLog.scrollHeight;
+}
+
+function pushHistory(cmd) {
     if (history[history.length - 1] !== cmd) {
         history.push(cmd);
         if (history.length > 50) history.shift();
         try { sessionStorage.setItem(CMD_HISTORY_KEY, JSON.stringify(history)); } catch(_) {}
     }
     histPtr = history.length;
-
     termLog.scrollTop = termLog.scrollHeight;
+}
+
+async function runNmapCommand(cmd) {
+    if (nmapRunning) {
+        appendResult('<span class="k">nmap:</span> already running. please wait…');
+        return;
+    }
+    if (!window.NmapEngine) {
+        appendResult('<span class="k">nmap:</span> engine not loaded.');
+        return;
+    }
+    nmapRunning = true;
+
+    // parse argv (respect simple quoting)
+    const argv = splitArgs(cmd).slice(1);
+
+    // container for all nmap lines
+    const wrap = document.createElement('div');
+    wrap.className = 'result nmap-output';
+    termLog.appendChild(wrap);
+
+    // "running" indicator + Ctrl+C hint
+    const indicator = document.createElement('div');
+    indicator.className = 'nmap-running';
+    indicator.innerHTML = '<span class="spin"></span> scanning… <span class="hint">(press Ctrl+C to abort)</span>';
+    wrap.appendChild(indicator);
+
+    let aborted = false;
+    const abortHandler = (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
+            aborted = true;
+        }
+    };
+    document.addEventListener('keydown', abortHandler);
+
+    const emit = (line, cls = '') => {
+        if (aborted) return;
+        const el = document.createElement('div');
+        el.className = 'nmap-line' + (cls ? ' ' + cls : '');
+        el.textContent = line;  // textContent = safe, no HTML injection
+        wrap.insertBefore(el, indicator);
+        termLog.scrollTop = termLog.scrollHeight;
+    };
+
+    try {
+        // prefers-reduced-motion → render all output at once
+        await window.NmapEngine.run(argv, emit, { fast: prefersReducedMotion });
+    } catch (err) {
+        emit('nmap: ' + (err && err.message || 'internal error'), 'err');
+    }
+
+    if (aborted) {
+        const a = document.createElement('div');
+        a.className = 'nmap-line err';
+        a.textContent = '^C';
+        wrap.insertBefore(a, indicator);
+        const b = document.createElement('div');
+        b.className = 'nmap-line warn';
+        b.textContent = 'Nmap aborted.';
+        wrap.insertBefore(b, indicator);
+    }
+    document.removeEventListener('keydown', abortHandler);
+    indicator.remove();
+    nmapRunning = false;
+    termLog.scrollTop = termLog.scrollHeight;
+}
+
+function splitArgs(s) {
+    // supports "quoted strings" and 'single-quoted', trims, collapses whitespace
+    const out = [];
+    let cur = '', q = null;
+    for (let i = 0; i < s.length; i++) {
+        const c = s[i];
+        if (q) {
+            if (c === q) q = null;
+            else cur += c;
+        } else if (c === '"' || c === "'") {
+            q = c;
+        } else if (/\s/.test(c)) {
+            if (cur) { out.push(cur); cur = ''; }
+        } else {
+            cur += c;
+        }
+    }
+    if (cur) out.push(cur);
+    return out;
 }
 
 function appendResult(html) {
@@ -454,6 +580,14 @@ function appendResult(html) {
     div.className = 'result';
     div.innerHTML = html;
     termLog.appendChild(div);
+
+    // wire inline blog links (from `blog` command)
+    div.querySelectorAll('a[data-blog-id]').forEach(a => {
+        a.addEventListener('click', (e) => {
+            e.preventDefault();
+            openBlogPost(a.getAttribute('data-blog-id'));
+        });
+    });
 }
 
 function escapeHtml(s) {
@@ -461,11 +595,12 @@ function escapeHtml(s) {
 }
 
 if (termInput) {
-    termInput.addEventListener('keydown', (e) => {
+    termInput.addEventListener('keydown', async (e) => {
         if (e.key === 'Enter') {
             e.preventDefault();
-            runCommand(termInput.value);
+            const val = termInput.value;
             termInput.value = '';
+            await runCommand(val);
         } else if (e.key === 'ArrowUp') {
             e.preventDefault();
             if (histPtr > 0) { histPtr--; termInput.value = history[histPtr] || ''; }
@@ -519,6 +654,125 @@ function activateRootMode() {
 }
 
 // ============================================================
+// BLOG — grid render + modal
+// ============================================================
+const blogGrid = document.getElementById('blog-grid');
+const blogModal = document.getElementById('blog-modal');
+const blogModalTitle   = document.getElementById('blog-modal-title');
+const blogModalCategory= document.getElementById('blog-modal-category');
+const blogModalDate    = document.getElementById('blog-modal-date');
+const blogModalRead    = document.getElementById('blog-modal-read');
+const blogModalTags    = document.getElementById('blog-modal-tags');
+const blogModalContent = document.getElementById('blog-modal-content');
+const blogModalFile    = document.getElementById('blog-modal-file');
+
+function renderBlogGrid() {
+    if (!blogGrid) return;
+    const posts = window.BLOG_POSTS || [];
+    blogGrid.innerHTML = '';
+    posts.forEach(post => {
+        const card = document.createElement('article');
+        card.className = 'blog-card fade-in';
+        card.setAttribute('role', 'button');
+        card.setAttribute('tabindex', '0');
+        card.setAttribute('aria-label', `Read: ${post.title}`);
+        card.dataset.blogId = post.id;
+
+        card.innerHTML = `
+            <div class="blog-card-header">
+                <span class="blog-category">${escHtml(post.category)}</span>
+                <span class="blog-date">${escHtml(post.date)}</span>
+                <span class="blog-read">${post.readMin || 5} min read</span>
+            </div>
+            <h3 class="blog-title">${escHtml(post.title)}</h3>
+            <p class="blog-excerpt">${escHtml(post.excerpt)}</p>
+            <div class="blog-tags">
+                ${post.tags.map(t => `<span class="blog-tag">${escHtml(t)}</span>`).join('')}
+            </div>
+            <span class="blog-card-foot">${post.link ? 'view writeup' : 'cat post.md'} <span class="arrow">→</span></span>
+        `;
+
+        card.addEventListener('click', () => openBlogPost(post.id));
+        card.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                openBlogPost(post.id);
+            }
+        });
+        blogGrid.appendChild(card);
+    });
+
+    // observe newly-added cards for fade-in
+    const io = new IntersectionObserver(entries => {
+        entries.forEach(en => {
+            if (en.isIntersecting) {
+                en.target.classList.add('visible');
+                io.unobserve(en.target);
+            }
+        });
+    }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+    blogGrid.querySelectorAll('.blog-card').forEach(el => io.observe(el));
+}
+
+function openBlogPost(id) {
+    const post = (window.BLOG_POSTS || []).find(p => p.id === id);
+    if (!post || !blogModal) return;
+
+    if (post.link) {
+        window.open(post.link, '_blank', 'noopener,noreferrer');
+        return;
+    }
+
+    blogModalTitle.textContent = post.title;
+    blogModalCategory.textContent = post.category;
+    blogModalDate.textContent = post.date;
+    blogModalRead.textContent = `${post.readMin || 5} min read`;
+    blogModalTags.innerHTML = post.tags.map(t => `<span class="blog-tag">${escHtml(t)}</span>`).join('');
+    blogModalFile.textContent = post.id + '.md';
+
+    const rendered = (window.renderMarkdown || (x => x))(post.body);
+    blogModalContent.innerHTML = rendered;
+
+    // annotate <pre> blocks with their lang for the corner label
+    blogModalContent.querySelectorAll('pre > code[class^="lang-"]').forEach(code => {
+        const lang = code.className.replace(/^lang-/, '');
+        code.parentElement.setAttribute('data-lang', lang);
+    });
+
+    blogModal.classList.add('active');
+    blogModal.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+    // focus the close button for a11y
+    const closeBtn = blogModal.querySelector('.modal-close');
+    if (closeBtn) setTimeout(() => closeBtn.focus(), 100);
+}
+
+function closeBlogPost() {
+    if (!blogModal) return;
+    blogModal.classList.remove('active');
+    blogModal.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+    blogModalContent.innerHTML = '';
+}
+
+if (blogModal) {
+    blogModal.addEventListener('click', (e) => {
+        if (e.target.dataset.close === '1' || e.target.closest('[data-close="1"]')) {
+            closeBlogPost();
+        }
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && blogModal.classList.contains('active')) {
+            closeBlogPost();
+        }
+    });
+}
+
+function escHtml(s) {
+    return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// ============================================================
 // CONSOLE BANNER
 // ============================================================
 console.log('%c[sudobyter]', 'color:#ff0040; font-size:22px; font-weight:700; text-shadow:0 0 6px #ff0040;');
@@ -534,6 +788,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initMatrixRain();
     initReticle();
     setTimeout(typeText, prefersReducedMotion ? 0 : 500);
+    renderBlogGrid();
     setupScrollAnimations();
     onScroll();
 });
