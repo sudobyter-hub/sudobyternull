@@ -689,7 +689,7 @@ function renderBlogGrid() {
             <div class="blog-tags">
                 ${post.tags.map(t => `<span class="blog-tag">${escHtml(t)}</span>`).join('')}
             </div>
-            <span class="blog-card-foot">${post.link ? 'view writeup' : 'cat post.md'} <span class="arrow">→</span></span>
+            <span class="blog-card-foot">cat post.md <span class="arrow">→</span></span>
         `;
 
         card.addEventListener('click', () => openBlogPost(post.id));
@@ -717,11 +717,6 @@ function renderBlogGrid() {
 function openBlogPost(id) {
     const post = (window.BLOG_POSTS || []).find(p => p.id === id);
     if (!post || !blogModal) return;
-
-    if (post.link) {
-        window.open(post.link, '_blank', 'noopener,noreferrer');
-        return;
-    }
 
     blogModalTitle.textContent = post.title;
     blogModalCategory.textContent = post.category;
