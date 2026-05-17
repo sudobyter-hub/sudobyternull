@@ -336,6 +336,7 @@ const COMMANDS = {
         '  <span class="v">skills</span>        show skill matrix',
         '  <span class="v">certs</span>         list certifications',
         '  <span class="v">projects</span>      list projects',
+        '  <span class="v">smarter</span>       list primers',
         '  <span class="v">blog</span>          list blog posts',
         '  <span class="v">contact</span>       how to reach me',
         '  <span class="v">social</span>        social links',
@@ -401,7 +402,7 @@ const COMMANDS = {
         '<span class="k">role</span>   : pentester · bug bounty · threat hunter',
         '<span class="k">mood</span>   : caffeinated ☕',
     ].join('\n'),
-    ls: () => 'about/  skills/  certifications/  projects/  blog/  contact/',
+    ls: () => 'about/  skills/  certifications/  projects/  smarter/  blog/  contact/',
     clear: () => { termLog.innerHTML = ''; return null; },
     sudo: () => '<span class="k">[sudo]</span> password for root: <span class="hint">nice try. try the konami code instead ↑↑↓↓←→←→BA</span>',
     exit: () => 'connection closed.',
@@ -432,6 +433,17 @@ const COMMANDS = {
         ];
         return lines.join('\n');
     },
+    smarter: () => {
+        const primers = window.SMARTER_PRIMERS || [];
+        if (!primers.length) return '<span class="hint">no primers yet.</span>';
+        const lines = [
+            '<span class="k">primers:</span>',
+            ...primers.map(p => `  <span class="v">${p.updated || ''}</span>  [${p.level || 'primer'}]  <a href="${p.link}" class="blog-inline-link">${p.title}</a>`),
+            '',
+            '<span class="hint">long-form concept explainers. open in a new tab via the cards above.</span>'
+        ];
+        return lines.join('\n');
+    },
 };
 
 let nmapRunning = false;
@@ -456,7 +468,7 @@ async function runCommand(raw) {
     // cd
     if (cmd.startsWith('cd ')) {
         const target = cmd.slice(3).trim().replace(/\/$/, '').toLowerCase();
-        const valid = ['about','skills','certifications','certs','projects','blog','contact'];
+        const valid = ['about','skills','certifications','certs','projects','smarter','blog','contact'];
         if (valid.includes(target)) {
             const id = target === 'certs' ? 'certifications' : target;
             const el = document.getElementById(id);
@@ -784,6 +796,49 @@ document.addEventListener('DOMContentLoaded', () => {
     initReticle();
     setTimeout(typeText, prefersReducedMotion ? 0 : 500);
     renderBlogGrid();
+    renderSmarterGrid();
     setupScrollAnimations();
     onScroll();
 });
+
+// ============================================================
+// SMARTER — primers card grid (cards link out to standalone pages)
+// ============================================================
+function renderSmarterGrid() {
+    const grid = document.getElementById('smarter-grid');
+    if (!grid) return;
+    const primers = window.SMARTER_PRIMERS || [];
+    grid.innerHTML = '';
+
+    primers.forEach(p => {
+        const card = document.createElement('a');
+        card.className = 'smarter-card fade-in';
+        card.href = p.link;
+        card.setAttribute('aria-label', `Read primer: ${p.title}`);
+
+        card.innerHTML = `
+            <div class="smarter-card-head">
+                <span class="smarter-level">${escHtml(p.level || 'primer')}</span>
+                <span class="smarter-read">${p.readMin || 10} min read</span>
+            </div>
+            <h3 class="smarter-title">${escHtml(p.title)}</h3>
+            <p class="smarter-sub">${escHtml(p.subtitle)}</p>
+            <div class="smarter-tags">
+                ${(p.tags||[]).map(t => `<span class="smarter-tag-chip">${escHtml(t)}</span>`).join('')}
+            </div>
+            <span class="smarter-cta">read primer <span class="arrow">→</span></span>
+        `;
+        grid.appendChild(card);
+    });
+
+    // fade-in observer
+    const io = new IntersectionObserver(entries => {
+        entries.forEach(en => {
+            if (en.isIntersecting) {
+                en.target.classList.add('visible');
+                io.unobserve(en.target);
+            }
+        });
+    }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+    grid.querySelectorAll('.smarter-card').forEach(el => io.observe(el));
+}

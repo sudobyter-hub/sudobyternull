@@ -1443,6 +1443,133 @@ ul { list-style: none; }
     background: rgba(255,255,255,0.015);
 }
 
+/* ============================================================
+   SMARTER — long-form primers section on the homepage
+   ============================================================ */
+.smarter-tag {
+    color: var(--text-muted);
+    font-style: italic;
+    font-size: 0.85rem;
+    margin: -0.5rem 0 1.75rem;
+}
+
+.smarter-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1rem;
+}
+
+.smarter-card {
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem 1.5rem 1.25rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-left: 3px solid var(--accent-2);
+    border-radius: 6px;
+    text-decoration: none;
+    color: inherit;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.25s ease,
+                border-color 0.25s ease,
+                box-shadow 0.25s ease;
+    opacity: 0;
+    transform: translateY(20px);
+}
+
+.smarter-card.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.smarter-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(91,214,109,0.03), transparent 60%);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+}
+
+.smarter-card:hover {
+    transform: translateY(-3px);
+    border-left-color: var(--accent);
+    box-shadow: 0 12px 32px -16px #000,
+                0 0 0 1px var(--accent-3) inset;
+}
+.smarter-card:hover::before { opacity: 1; }
+
+.smarter-card-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    font-size: 0.7rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 0.85rem;
+}
+.smarter-level {
+    color: var(--accent-2);
+    border: 1px solid var(--accent-2);
+    border-radius: 3px;
+    padding: 2px 8px;
+    background: rgba(108,182,255,0.05);
+}
+.smarter-read { color: var(--text-muted); }
+
+.smarter-title {
+    font-size: 1.2rem;
+    color: var(--text-primary);
+    line-height: 1.35;
+    margin: 0 0 0.55rem;
+    font-weight: 500;
+}
+.smarter-card:hover .smarter-title { color: var(--accent); }
+
+.smarter-sub {
+    color: var(--text-secondary);
+    font-size: 0.92rem;
+    line-height: 1.55;
+    margin: 0 0 1rem;
+    flex-grow: 1;
+}
+
+.smarter-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-bottom: 1rem;
+}
+.smarter-tag-chip {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    background: var(--bg-tertiary);
+    padding: 2px 8px;
+    border-radius: 3px;
+    border: 1px solid var(--border-color);
+}
+
+.smarter-cta {
+    color: var(--accent);
+    font-size: 0.82rem;
+    letter-spacing: 0.04em;
+    text-transform: lowercase;
+    margin-top: auto;
+    padding-top: 0.4rem;
+    border-top: 1px dashed var(--border-color);
+}
+.smarter-cta .arrow {
+    transition: transform 0.2s ease;
+    display: inline-block;
+}
+.smarter-card:hover .smarter-cta .arrow {
+    transform: translateX(4px);
+}
+
 /* ===== Inline figures (screenshots, memes) inside posts ===== */
 .blog-post-content .md-figure {
     margin: 1.5rem 0;

@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Active Directory explained for humans. Why it exists, how it works, and the five attacks every red-teamer reaches for first.">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; script-src 'self' 'unsafe-inline'; frame-ancestors 'none';">
+<title>Active Directory, in plain words | sudobyter / smarter</title>
+<link rel="icon" type="image/svg+xml" href="../img/svg/favicon.svg">
+<style>
+/* ============================================================
+   SMARTER · standalone primer page
+   Self-contained styling. Same palette as the main site.
+   ============================================================ */
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('../fonts/jetbrains-mono-latin.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
+
+:root {
+  --bg:        #0a0e0b;
+  --bg-2:     #0f1411;
+  --panel:    #11161300;
+  --border:   #1f2a22;
+  --border-2: #2a3a30;
+  --fg:       #d6e3d8;
+  --muted:    #7a8a7f;
+  --green:    #5bd66d;
+  --green-d:  #2c8a3a;
+  --amber:    #e9c46a;
+  --red:      #ff6b6b;
+  --blue:     #6cb6ff;
+  --magenta:  #c084fc;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 80px; }
+body {
+  margin: 0; padding: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: 'JetBrains Mono', 'SF Mono', Menlo, Monaco, Consolas, monospace;
+  font-size: 15px;
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: var(--blue); text-decoration: none; }
+a:hover { color: var(--green); text-decoration: underline; text-underline-offset: 3px; }
+
+/* progress bar (sticky top) */
+.progress-bar {
+  position: fixed; top: 0; left: 0; right: 0;
+  height: 2px;
+  background: transparent;
+  z-index: 100;
+}
+.progress-bar::after {
+  content: ''; display: block;
+  height: 100%;
+  width: var(--progress, 0%);
+  background: var(--green);
+  box-shadow: 0 0 10px var(--green);
+  transition: width 80ms linear;
+}
+
+/* site header */
+.site-nav {
+  position: sticky; top: 0;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 28px;
+  background: rgba(10, 14, 11, 0.85);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--border);
+  z-index: 50;
+  font-size: 14px;
+}
+.site-nav .logo { color: var(--fg); font-weight: 500; }
+.site-nav .logo span { color: var(--green); }
+.site-nav .back { color: var(--muted); }
+.site-nav .back:hover { color: var(--green); text-decoration: none; }
+
+/* hero */
+.primer-hero {
+  padding: 64px 28px 36px;
+  border-bottom: 1px dashed var(--border);
+  max-width: 1180px; margin: 0 auto;
+}
+.primer-hero .crumbs {
+  color: var(--muted); font-size: 12px;
+  letter-spacing: 0.04em;
+  margin-bottom: 14px;
+}
+.primer-hero .crumbs .root { color: var(--green-d); }
+.primer-hero h1 {
+  font-size: 36px;
+  margin: 0 0 14px;
+  font-weight: 500;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+.primer-hero h1 .sigil { color: var(--green); }
+.primer-hero .lede {
+  font-size: 17px;
+  color: var(--fg);
+  opacity: 0.85;
+  max-width: 780px;
+  margin: 0 0 22px;
+  line-height: 1.6;
+}
+.primer-hero .meta {
+  display: flex; flex-wrap: wrap; gap: 22px;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+.primer-hero .meta span b { color: var(--amber); font-weight: 500; }
+
+/* main two-column layout */
+.primer-main {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 760px);
+  gap: 56px;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 40px 28px 80px;
+}
+
+/* TOC sidebar */
+.toc {
+  position: sticky;
+  top: 78px;
+  align-self: start;
+  max-height: calc(100vh - 100px);
+  overflow-y: auto;
+  font-size: 13px;
+}
+.toc-title {
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 11px;
+  margin: 0 0 14px;
+  padding-bottom: 8px;
+  border-bottom: 1px dashed var(--border);
+}
+.toc ol {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  counter-reset: toc;
+}
+.toc li {
+  counter-increment: toc;
+  margin: 6px 0;
+}
+.toc li a {
+  color: var(--muted);
+  display: block;
+  padding: 4px 0 4px 22px;
+  position: relative;
+  border-left: 1px solid transparent;
+  transition: color 0.15s, border-color 0.15s, padding-left 0.15s;
+  line-height: 1.45;
+}
+.toc li a::before {
+  content: counter(toc, decimal-leading-zero);
+  position: absolute; left: 0;
+  color: var(--green-d);
+  font-size: 11px;
+}
+.toc li a:hover { color: var(--fg); text-decoration: none; }
+.toc li a.active {
+  color: var(--green);
+  border-left: 2px solid var(--green);
+  padding-left: 24px;
+}
+
+/* article */
+.primer-article {
+  min-width: 0; /* enables proper grid shrink */
+}
+.primer-article h2 {
+  font-size: 22px;
+  margin: 56px 0 18px;
+  color: var(--fg);
+  font-weight: 500;
+  line-height: 1.3;
+  scroll-margin-top: 80px;
+}
+.primer-article h2::before {
+  content: '## ';
+  color: var(--green-d);
+}
+.primer-article h2:first-child { margin-top: 0; }
+.primer-article h3 {
+  font-size: 16px;
+  margin: 32px 0 10px;
+  color: var(--amber);
+  font-weight: 500;
+  scroll-margin-top: 80px;
+}
+.primer-article h3::before {
+  content: '# ';
+  color: var(--green-d);
+}
+.primer-article p { margin: 14px 0; }
+.primer-article p code,
+.primer-article li code {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  padding: 1px 6px;
+  border-radius: 3px;
+  color: var(--amber);
+  font-size: 13px;
+}
+.primer-article ul, .primer-article ol {
+  padding-left: 22px;
+  margin: 12px 0;
+}
+.primer-article li { margin: 6px 0; }
+.primer-article strong { color: var(--fg); font-weight: 600; }
+.primer-article em { color: var(--amber); font-style: italic; }
+
+/* anchor link icon on headings */
+.anchor {
+  margin-left: 8px;
+  opacity: 0;
+  color: var(--green-d);
+  font-size: 0.85em;
+  transition: opacity 0.15s;
+}
+h2:hover .anchor, h3:hover .anchor { opacity: 1; }
+.anchor:hover { color: var(--green); }
+
+/* analogy callout */
+.analogy {
+  border-left: 3px solid var(--amber);
+  background: linear-gradient(90deg, rgba(233,196,106,0.06), transparent 80%);
+  padding: 16px 18px;
+  margin: 24px 0;
+  border-radius: 0 4px 4px 0;
+}
+.analogy .tag {
+  display: inline-block;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--amber);
+  margin-bottom: 6px;
+}
+
+/* diagram figure */
+.diagram {
+  margin: 28px 0;
+  padding: 20px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  text-align: center;
+  overflow-x: auto;
+}
+.diagram svg {
+  max-width: 100%;
+  height: auto;
+}
+.diagram figcaption {
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 12px;
+  font-style: italic;
+}
+
+/* attack cards */
+.attack-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+  margin: 24px 0;
+}
+.attack-card {
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--red);
+  background: var(--bg-2);
+  border-radius: 4px;
+  padding: 14px 18px;
+}
+.attack-card .plain {
+  color: var(--fg);
+  font-size: 15px;
+  margin: 0;
+  line-height: 1.5;
+}
+.attack-card .name {
+  color: var(--red);
+  font-size: 12.5px;
+  margin-top: 6px;
+  letter-spacing: 0.04em;
+}
+.attack-card .name b { color: var(--amber); font-weight: 600; }
+
+/* code-ish examples (LDAP query, etc.) */
+.snippet {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--green-d);
+  border-radius: 4px;
+  padding: 14px 18px;
+  margin: 18px 0;
+  font-size: 13px;
+  color: var(--fg);
+  overflow-x: auto;
+  white-space: pre;
+}
+.snippet .k  { color: var(--magenta); }
+.snippet .s  { color: var(--amber); }
+.snippet .c  { color: var(--muted); }
+.snippet .v  { color: var(--blue); }
+.snippet .g  { color: var(--green); }
+
+/* footer */
+.primer-foot {
+  border-top: 1px dashed var(--border);
+  padding: 28px;
+  max-width: 1180px; margin: 0 auto;
+  color: var(--muted);
+  font-size: 12.5px;
+  display: flex; flex-wrap: wrap; justify-content: space-between; gap: 14px;
+}
+.primer-foot a { color: var(--green-d); }
+.primer-foot a:hover { color: var(--green); }
+
+/* responsive */
+@media (max-width: 880px) {
+  .primer-main {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+  .toc {
+    position: relative;
+    top: 0;
+    max-height: none;
+    order: 2; /* TOC below content on mobile */
+    border-top: 1px dashed var(--border);
+    padding-top: 24px;
+  }
+  .primer-article { order: 1; }
+  .primer-hero h1 { font-size: 28px; }
+  .primer-hero .lede { font-size: 15px; }
+}
+</style>
+</head>
+<body>
+
+<!-- reading progress bar -->
+<div class="progress-bar" id="progress"></div>
+
+<!-- top nav -->
+<nav class="site-nav">
+  <a href="../" class="logo">[<span>sudobyter</span>] / smarter</a>
+  <a href="../#smarter" class="back">← all primers</a>
+</nav>
+
+<!-- hero -->
+<header class="primer-hero">
+  <div class="crumbs"><span class="root">~</span> / smarter / <span style="color:var(--fg)">active-directory</span></div>
+  <h1><span class="sigil">$</span> Active Directory, in plain words</h1>
+  <p class="lede">
+    An apartment building has a doorman with a tenant ledger. Active Directory is that doorman — for computers. By the end of this page you'll understand why it exists, how it actually works, and the five attacks every red-teamer reaches for first.
+  </p>
+  <div class="meta">
+    <span>read time <b>~15 min</b></span>
+    <span>level <b>beginner-friendly</b></span>
+    <span>updated <b>2026-05-17</b></span>
+  </div>
+</header>
+
+<!-- main -->
+<main class="primer-main">
+
+  <!-- TOC -->
+  <aside class="toc" id="toc">
+    <p class="toc-title">on this page</p>
+    <ol>
+      <li><a href="#why">why AD exists at all</a></li>
+      <li><a href="#cast">the cast of characters</a></li>
+      <li><a href="#ldap">the phonebook — LDAP</a></li>
+      <li><a href="#kerberos">the ticket counter — Kerberos</a></li>
+      <li><a href="#attacks">where it breaks</a></li>
+      <li><a href="#domain-admin">what "Domain Admin" really means</a></li>
+      <li><a href="#killchain">what attackers actually do</a></li>
+      <li><a href="#deeper">going deeper</a></li>
+    </ol>
+  </aside>
+
+  <!-- article -->
+  <article class="primer-article">
+
+    <!-- §1 -->
+    <section>
+      <h2 id="why">why AD exists at all<a class="anchor" href="#why">#</a></h2>
+
+      <p>
+        Imagine you own a tiny company with three employees and three laptops. Setting up usernames is easy: you make a user account on each laptop. Three people, three machines, nine accounts. Whatever.
+      </p>
+      <p>
+        Now imagine the company grows to <b>three thousand</b> employees. Five offices. Two thousand laptops. Forty servers. A few hundred printers. Some VPN gateways. A wiki. A file share. A code repo.
+      </p>
+      <p>
+        Without a central directory, every single one of those machines has its own list of who can log in. A new hire on Monday means making accounts on… <em>everything</em>. An employee leaving on Friday means hunting them down on every machine they ever touched. This is unmanageable inside a week.
+      </p>
+
+      <div class="analogy">
+        <span class="tag">analogy</span>
+        <p style="margin:0;">
+          Picture a 50-story apartment building. Without a front-desk ledger, every shop, gym, and laundry room in the building has to keep its own list of "who's allowed in." Move in, move out, change your name — you'd have to walk to every shop and update them yourself.<br><br>
+          AD is the building's <b>doorman</b>. There's one ledger. Every business inside the building trusts the doorman. You show ID to the doorman <em>once</em>, and from then on the doorman vouches for you.
+        </p>
+      </div>
+
+      <p>
+        That's it. That's the whole reason AD exists. <strong>One identity, trusted everywhere on the network.</strong> Everything else — the protocols, the database, the attacks — is just the machinery that makes that promise real.
+      </p>
+    </section>
+
+    <!-- §2 -->
+    <section>
+      <h2 id="cast">the cast of characters<a class="anchor" href="#cast">#</a></h2>
+
+      <p>AD has its own vocabulary. Most of it is intimidating until you map it to the apartment building.</p>
+
+      <ul>
+        <li><strong>Domain</strong> — one building. Has a name like <code>corp.local</code>. Everyone inside trusts the same doorman.</li>
+        <li><strong>Forest</strong> — a city block of buildings that all know each other. A trust relationship lets a tenant in one building enter another.</li>
+        <li><strong>Organizational Unit (OU)</strong> — a floor inside a building. Lets the doorman organize tenants by department.</li>
+        <li><strong>User</strong> — an actual person who can log in.</li>
+        <li><strong>Group</strong> — a label. "Sales", "Domain Admins", "VPN Users". You give permissions to a group, then drop users into it.</li>
+        <li><strong>Computer</strong> — yes, computers have accounts too. They authenticate to the domain just like users do.</li>
+        <li><strong>Domain Controller (DC)</strong> — the doorman himself. The actual server running AD. There's usually more than one for redundancy.</li>
+      </ul>
+
+      <p>Visually:</p>
+
+      <figure class="diagram">
+        <svg viewBox="0 0 1200 440" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A forest with two domains; OUs and leaf objects under one domain; a DC hosts the directory">
+          <defs>
+            <marker id="arrDashedEnd" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#c084fc"/>
+            </marker>
+          </defs>
+          <style>
+            .lbl     { font: 13px 'JetBrains Mono', monospace; fill: #d6e3d8; }
+            .lbl-m   { font: 11px   'JetBrains Mono', monospace; fill: #7a8a7f; }
+            .lbl-g   { font: 13px 'JetBrains Mono', monospace; fill: #5bd66d; font-weight: 600; letter-spacing: 0.04em; }
+            .lbl-a   { font: 13px 'JetBrains Mono', monospace; fill: #e9c46a; }
+            .lbl-mag { font: 12px 'JetBrains Mono', monospace; fill: #c084fc; letter-spacing: 0.06em; }
+            .box     { fill: #11161300; stroke: #2a3a30; stroke-width: 1; }
+            .box-dc  { fill: #0a0e0b; stroke: #5bd66d; stroke-width: 1.5; }
+            .conn    { stroke: #2c8a3a; stroke-width: 1; fill: none; opacity: 0.8; }
+            .conn-dashed { stroke: #c084fc; stroke-width: 1.4; fill: none; stroke-dasharray: 6 4; }
+          </style>
+
+          <!-- FOREST -->
+          <rect x="310" y="18" width="180" height="52" rx="6" class="box"/>
+          <text x="400" y="44" text-anchor="middle" class="lbl-g">FOREST</text>
+          <text x="400" y="60" text-anchor="middle" class="lbl-m">corp.local</text>
+
+          <!-- forest → domains -->
+          <line x1="400" y1="70" x2="250" y2="124" class="conn"/>
+          <line x1="400" y1="70" x2="550" y2="124" class="conn"/>
+
+          <!-- DOMAIN na -->
+          <rect x="150" y="124" width="200" height="52" rx="5" class="box"/>
+          <text x="250" y="148" text-anchor="middle" class="lbl">DOMAIN</text>
+          <text x="250" y="166" text-anchor="middle" class="lbl-m">na.corp.local</text>
+
+          <!-- DOMAIN eu -->
+          <rect x="450" y="124" width="200" height="52" rx="5" class="box"/>
+          <text x="550" y="148" text-anchor="middle" class="lbl">DOMAIN</text>
+          <text x="550" y="166" text-anchor="middle" class="lbl-m">eu.corp.local</text>
+
+          <!-- na → OUs -->
+          <line x1="250" y1="176" x2="110" y2="226" class="conn"/>
+          <line x1="250" y1="176" x2="270" y2="226" class="conn"/>
+          <line x1="250" y1="176" x2="430" y2="226" class="conn"/>
+
+          <!-- OU Sales -->
+          <rect x="40" y="226" width="140" height="42" rx="4" class="box"/>
+          <text x="110" y="252" text-anchor="middle" class="lbl-a">OU: Sales</text>
+
+          <!-- OU Finance -->
+          <rect x="200" y="226" width="140" height="42" rx="4" class="box"/>
+          <text x="270" y="252" text-anchor="middle" class="lbl-a">OU: Finance</text>
+
+          <!-- OU IT -->
+          <rect x="360" y="226" width="140" height="42" rx="4" class="box"/>
+          <text x="430" y="252" text-anchor="middle" class="lbl-a">OU: IT</text>
+
+          <!-- IT → leaves -->
+          <line x1="430" y1="268" x2="310" y2="320" class="conn"/>
+          <line x1="430" y1="268" x2="480" y2="320" class="conn"/>
+          <line x1="430" y1="268" x2="660" y2="320" class="conn"/>
+
+          <!-- leaf: user alice -->
+          <rect x="240" y="320" width="140" height="42" rx="4" class="box"/>
+          <text x="310" y="346" text-anchor="middle" class="lbl">user: alice</text>
+
+          <!-- leaf: group -->
+          <rect x="400" y="320" width="160" height="42" rx="4" class="box"/>
+          <text x="480" y="346" text-anchor="middle" class="lbl">group: IT-Admins</text>
+
+          <!-- leaf: computer -->
+          <rect x="580" y="320" width="180" height="42" rx="4" class="box"/>
+          <text x="670" y="346" text-anchor="middle" class="lbl">computer: WS-001</text>
+
+          <!-- DC callout — top-right, parallel to domains -->
+          <rect x="790" y="100" width="280" height="110" rx="6" class="box-dc"/>
+          <text x="930" y="128" text-anchor="middle" class="lbl-g">DOMAIN CONTROLLER</text>
+          <text x="930" y="152" text-anchor="middle" class="lbl-m">DC01.na.corp.local</text>
+          <text x="930" y="176" text-anchor="middle" class="lbl-m">the Windows server that</text>
+          <text x="930" y="194" text-anchor="middle" class="lbl-m">actually holds the directory</text>
+
+          <!-- dashed arrow: DC → DOMAIN na (routed below the domain row to skip eu) -->
+          <path d="M 790 165 Q 570 220 354 165" class="conn-dashed" marker-end="url(#arrDashedEnd)"/>
+          <text x="570" y="218" text-anchor="middle" class="lbl-mag">hosts</text>
+
+          <!-- bottom caption inside the svg -->
+          <text x="600" y="408" text-anchor="middle" class="lbl-m">forest → domain → OU → user / group / computer · all of it stored on the DC</text>
+        </svg>
+        <figcaption>Forest contains domains. Domains contain OUs. OUs contain users, groups, and computers. The DC is the physical server that hosts the whole directory.</figcaption>
+      </figure>
+
+      <p>
+        When red-teamers say <em>"I got Domain Admin"</em>, they mean: they hold credentials for a user whose group membership lets them do <strong>anything</strong> inside a domain. We'll come back to why that's the magic phrase in §6.
+      </p>
+    </section>
+
+    <!-- §3 -->
+    <section>
+      <h2 id="ldap">the phonebook — LDAP<a class="anchor" href="#ldap">#</a></h2>
+
+      <p>
+        AD stores all that structure — domains, OUs, users, groups, computers, attributes, permissions — in one giant searchable database. The way you query that database is called <strong>LDAP</strong> (<em>Lightweight Directory Access Protocol</em>).
+      </p>
+      <p>
+        LDAP is just a phonebook with a query language. Every "find me…" question you can ask of AD turns into an LDAP query. For example, "find me every account whose name ends in <code>-admin</code>":
+      </p>
+
+      <div class="snippet"><span class="c"># filter on the sAMAccountName attribute</span>
+<span class="k">ldapsearch</span> -H ldap://dc01.corp.local -D <span class="s">"alice@corp.local"</span> -W \
+           -b <span class="s">"DC=corp,DC=local"</span> \
+           <span class="s">"(sAMAccountName=*-admin)"</span> <span class="v">sAMAccountName</span> <span class="v">memberOf</span></div>
+
+      <p>
+        The very first thing a red-teamer with a foothold does is query LDAP. <em>Who are the Domain Admins? What computers exist? What service accounts have weird permissions? Which users haven't logged in for two years?</em> All of it is one phonebook lookup. None of it is "hacking" — it's just <strong>reading</strong>. And by default, <em>any</em> authenticated user can read most of the directory.
+      </p>
+      <p>
+        Tools like <code>BloodHound</code> automate this: they fire thousands of LDAP queries, build a graph of "who can reach what," and hand you the shortest path to Domain Admin.
+      </p>
+    </section>
+
+    <!-- §4 -->
+    <section>
+      <h2 id="kerberos">the ticket counter — Kerberos<a class="anchor" href="#kerberos">#</a></h2>
+
+      <p>
+        OK so AD knows who everyone is. How do you actually <em>prove</em> you're a user when you sit down at a laptop and try to open a file share? Sending your password to every server in the building is a terrible idea. Instead, AD uses <strong>Kerberos</strong>.
+      </p>
+
+      <div class="analogy">
+        <span class="tag">analogy</span>
+        <p style="margin:0;">
+          Picture a museum with a front desk and lots of separate exhibition halls. You show your ID at the front desk <em>once</em> in the morning. The front desk hands you a <strong>master wristband</strong>. Every time you want to enter an exhibition, you trade your wristband for an <strong>exhibition-specific ticket</strong>. The exhibition checks the ticket and lets you in. They never see your ID.
+        </p>
+      </div>
+
+      <p>That's it. That's Kerberos. Names matter, so:</p>
+      <ul>
+        <li>The <strong>front desk</strong> is the <strong>KDC</strong> (<em>Key Distribution Center</em>). It lives on the Domain Controller. It has two sub-windows: the <strong>AS</strong> (Authentication Service) and the <strong>TGS</strong> (Ticket-Granting Service).</li>
+        <li>The <strong>master wristband</strong> is the <strong>TGT</strong> (<em>Ticket-Granting Ticket</em>). You get it once at login.</li>
+        <li>The <strong>exhibition-specific ticket</strong> is the <strong>service ticket</strong> (or TGS ticket). One per service you want to talk to.</li>
+      </ul>
+
+      <p>Here's the full handshake:</p>
+
+      <figure class="diagram">
+        <svg viewBox="0 0 760 460" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Kerberos authentication handshake">
+          <defs>
+            <marker id="arrG" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#5bd66d"/>
+            </marker>
+            <marker id="arrA" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#e9c46a"/>
+            </marker>
+          </defs>
+          <style>
+            .h    { font: 13px 'JetBrains Mono', monospace; fill: #5bd66d; }
+            .hm   { font: 11px 'JetBrains Mono', monospace; fill: #7a8a7f; }
+            .lbl  { font: 12px 'JetBrains Mono', monospace; fill: #d6e3d8; }
+            .num  { font: 11px 'JetBrains Mono', monospace; fill: #6cb6ff; font-weight: bold; }
+            .step { font: 11.5px 'JetBrains Mono', monospace; fill: #d6e3d8; }
+            .tkt  { font: 11px 'JetBrains Mono', monospace; fill: #e9c46a; font-style: italic; }
+            .lane { stroke: #2a3a30; stroke-width: 1; stroke-dasharray: 4 4; }
+            .hdr  { fill: #0a0e0b; stroke: #2a3a30; }
+            .hdr-kdc { fill: #0a0e0b; stroke: #5bd66d; stroke-width: 1.5; }
+          </style>
+
+          <!-- lifelines headers -->
+          <rect x="20"  y="20" width="140" height="48" rx="5" class="hdr"/>
+          <text x="90"  y="42" text-anchor="middle" class="h">USER</text>
+          <text x="90"  y="58" text-anchor="middle" class="hm">alice's laptop</text>
+
+          <rect x="220" y="20" width="140" height="48" rx="5" class="hdr-kdc"/>
+          <text x="290" y="42" text-anchor="middle" class="h">KDC · AS</text>
+          <text x="290" y="58" text-anchor="middle" class="hm">on DC, port 88</text>
+
+          <rect x="400" y="20" width="140" height="48" rx="5" class="hdr-kdc"/>
+          <text x="470" y="42" text-anchor="middle" class="h">KDC · TGS</text>
+          <text x="470" y="58" text-anchor="middle" class="hm">on DC, port 88</text>
+
+          <rect x="600" y="20" width="140" height="48" rx="5" class="hdr"/>
+          <text x="670" y="42" text-anchor="middle" class="h">SERVICE</text>
+          <text x="670" y="58" text-anchor="middle" class="hm">fileserver</text>
+
+          <!-- lifelines -->
+          <line x1="90"  y1="68" x2="90"  y2="440" class="lane"/>
+          <line x1="290" y1="68" x2="290" y2="440" class="lane"/>
+          <line x1="470" y1="68" x2="470" y2="440" class="lane"/>
+          <line x1="670" y1="68" x2="670" y2="440" class="lane"/>
+
+          <!-- step 1: User → AS -->
+          <line x1="90" y1="100" x2="285" y2="100" stroke="#5bd66d" stroke-width="1.5" marker-end="url(#arrG)"/>
+          <text x="100" y="92" class="num">1</text>
+          <text x="186" y="92" text-anchor="middle" class="step">AS-REQ — "hi, I'm alice"</text>
+          <text x="186" y="116" text-anchor="middle" class="hm">+ pre-auth (timestamp encrypted with alice's password hash)</text>
+
+          <!-- step 2: AS → User -->
+          <line x1="290" y1="160" x2="95" y2="160" stroke="#e9c46a" stroke-width="1.5" marker-end="url(#arrA)"/>
+          <text x="100" y="152" class="num">2</text>
+          <text x="186" y="152" text-anchor="middle" class="step">AS-REP — here's your TGT</text>
+          <text x="186" y="176" text-anchor="middle" class="tkt">TGT = ticket encrypted with the KDC's secret key</text>
+
+          <!-- step 3: User → TGS -->
+          <line x1="90" y1="220" x2="465" y2="220" stroke="#5bd66d" stroke-width="1.5" marker-end="url(#arrG)"/>
+          <text x="100" y="212" class="num">3</text>
+          <text x="278" y="212" text-anchor="middle" class="step">TGS-REQ — TGT + "I want fileserver"</text>
+
+          <!-- step 4: TGS → User -->
+          <line x1="470" y1="270" x2="95" y2="270" stroke="#e9c46a" stroke-width="1.5" marker-end="url(#arrA)"/>
+          <text x="100" y="262" class="num">4</text>
+          <text x="278" y="262" text-anchor="middle" class="step">TGS-REP — service ticket for fileserver</text>
+          <text x="278" y="286" text-anchor="middle" class="tkt">service ticket = encrypted with fileserver's password hash</text>
+
+          <!-- step 5: User → Service -->
+          <line x1="90" y1="340" x2="665" y2="340" stroke="#5bd66d" stroke-width="1.5" marker-end="url(#arrG)"/>
+          <text x="100" y="332" class="num">5</text>
+          <text x="378" y="332" text-anchor="middle" class="step">AP-REQ — "here's my service ticket"</text>
+
+          <!-- step 6: Service → User -->
+          <line x1="670" y1="390" x2="95" y2="390" stroke="#e9c46a" stroke-width="1.5" marker-end="url(#arrA)"/>
+          <text x="100" y="382" class="num">6</text>
+          <text x="378" y="382" text-anchor="middle" class="step">AP-REP — "welcome, alice"</text>
+
+          <!-- note: password never travels -->
+          <text x="380" y="436" text-anchor="middle" class="hm">★ alice's password never leaves her laptop after step 1's pre-auth.</text>
+        </svg>
+        <figcaption>The Kerberos dance. You authenticate to the AS once (steps 1-2). After that, every new service is just a ticket trade (steps 3-4) and a presentation (steps 5-6).</figcaption>
+      </figure>
+
+      <p>
+        Three things to remember about this:
+      </p>
+      <ol>
+        <li>The TGT is <strong>encrypted with the KDC's secret key</strong> — a key that, on the DC, is derived from the password of a built-in account called <code>krbtgt</code>. Remember <code>krbtgt</code>. It'll come back.</li>
+        <li>Each service ticket is <strong>encrypted with that service's password hash</strong>. If you steal a service ticket and the service's password is weak, you can crack the ticket offline and recover the password.</li>
+        <li>The system trusts encryption, not the network. Anyone who steals or forges the right encrypted blob <em>is</em> that user, as far as the service knows.</li>
+      </ol>
+      <p>Those three facts are where every Kerberos attack comes from.</p>
+    </section>
+
+    <!-- §5 -->
+    <section>
+      <h2 id="attacks">where it breaks<a class="anchor" href="#attacks">#</a></h2>
+
+      <p>
+        Now you know enough to actually understand the five attacks. Each one bends a property we just covered. I'll give you the plain-language version first, then the technical name.
+      </p>
+
+      <div class="attack-grid">
+
+        <div class="attack-card">
+          <p class="plain">
+            <strong>"Ask the front desk for a service ticket, then go home and try to crack the ticket's encryption to recover the service's password."</strong> You don't need to <em>use</em> the ticket — you just need to be holding one. The KDC will hand a TGS ticket to <em>anyone</em> who's already authenticated and asks for one. If the service has a weak password, the encryption is weak.
+          </p>
+          <p class="name">→ <b>Kerberoasting.</b> Targets service accounts (any user with a Service Principal Name).</p>
+        </div>
+
+        <div class="attack-card">
+          <p class="plain">
+            <strong>"Ask the front desk for someone else's master wristband, but for an account whose pre-auth check is turned off."</strong> Normally the AS won't issue a TGT unless you can prove you know the user's password (the pre-auth step). Some legacy accounts have pre-auth disabled. For those, you get the AS to hand you a TGT blob — and that blob is encrypted with their password hash, so you can crack it offline.
+          </p>
+          <p class="name">→ <b>AS-REP Roasting.</b> Targets accounts with <code>DONT_REQ_PREAUTH</code> set.</p>
+        </div>
+
+        <div class="attack-card">
+          <p class="plain">
+            <strong>"Stand in the hallway between a user's laptop and a server. When the user goes to authenticate, secretly forward their authentication to a different server you actually want to log into."</strong> The user's machine politely answers an NTLM challenge for you. You replay it elsewhere.
+          </p>
+          <p class="name">→ <b>NTLM Relay.</b> Works against the older NTLM protocol that AD still supports for compatibility.</p>
+        </div>
+
+        <div class="attack-card">
+          <p class="plain">
+            <strong>"Politely ask the doorman for a copy of everyone's passwords, by pretending you're another doorman doing routine replication."</strong> DCs replicate the directory between themselves. If you have a specific replication right — a permission a couple of accounts have by default and others get by accident — you can ask one DC to send you the password hashes of every user in the domain.
+          </p>
+          <p class="name">→ <b>DCSync.</b> Requires the <code>Replicating Directory Changes</code> right. Game over if you have it.</p>
+        </div>
+
+        <div class="attack-card">
+          <p class="plain">
+            <strong>"Forge your own master wristband, because you stole the rubber stamp the front desk uses to make them."</strong> Remember <code>krbtgt</code>'s key — the one used to encrypt every TGT? If you ever steal it (usually via DCSync), you can <strong>generate</strong> TGTs for any user, with any group membership, valid for 10 years by default. The KDC will accept them.
+          </p>
+          <p class="name">→ <b>Golden Ticket.</b> Persistence on hard mode. The fix is rotating <code>krbtgt</code>'s password — twice.</p>
+        </div>
+
+      </div>
+
+      <p>
+        Every one of those is the same shape: <em>identity is encrypted blobs, and we found a way to grab or forge one</em>. Once you see the pattern, every new "AD attack" is a variation.
+      </p>
+    </section>
+
+    <!-- §6 -->
+    <section>
+      <h2 id="domain-admin">what "Domain Admin" really means<a class="anchor" href="#domain-admin">#</a></h2>
+
+      <p>
+        <strong>Domain Admin</strong> is a group. Members of it are allowed to do anything inside the domain: read every password hash, run code on every machine, modify the directory, create new accounts, change group memberships. There are a few other groups in the neighborhood — <code>Enterprise Admins</code> (the whole forest), <code>Schema Admins</code> (the database structure itself) — but DA is the one that matters in practice.
+      </p>
+      <p>
+        Why is it the holy grail? Because once you have it:
+      </p>
+      <ul>
+        <li>You can read every user's password hash → log in as anyone.</li>
+        <li>You can DCSync → cement persistence with a Golden Ticket.</li>
+        <li>You can run code on any machine joined to the domain → ransomware, data exfil, whatever the engagement scope allows.</li>
+        <li>You can quietly add yourself to the group on a different account → backdoor for later.</li>
+      </ul>
+      <p>
+        That's why the very first thing BloodHound shows you, when you point it at a network, is a node colored bright red labeled <code>DOMAIN ADMINS</code> and the shortest path from your foothold to it.
+      </p>
+    </section>
+
+    <!-- §7 -->
+    <section>
+      <h2 id="killchain">what attackers actually do<a class="anchor" href="#killchain">#</a></h2>
+
+      <p>
+        Real engagements rarely look like a single exploit. They look like a chain. The same chain shows up in real breaches, in CTFs, in pentest reports — once you've seen it twice, you'll see it everywhere.
+      </p>
+
+      <figure class="diagram">
+        <svg viewBox="0 0 760 220" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="The standard AD attack kill chain">
+          <defs>
+            <marker id="arrK" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#7a8a7f"/>
+            </marker>
+          </defs>
+          <style>
+            .step-box { fill: #11161300; stroke: #2a3a30; stroke-width: 1; }
+            .step-box-end { fill: #0a0e0b; stroke: #ff6b6b; stroke-width: 1.5; }
+            .step-lbl { font: 11.5px 'JetBrains Mono', monospace; fill: #d6e3d8; font-weight: 600; }
+            .step-sub { font: 10px 'JetBrains Mono', monospace; fill: #7a8a7f; }
+            .step-num { font: 9px 'JetBrains Mono', monospace; fill: #5bd66d; letter-spacing: 0.1em; }
+            .conn { stroke: #7a8a7f; stroke-width: 1; }
+            .end-lbl { font: 11.5px 'JetBrains Mono', monospace; fill: #ff6b6b; font-weight: 700; }
+          </style>
+
+          <!-- 6 stages -->
+          <g>
+            <rect x="20"  y="60" width="110" height="70" rx="4" class="step-box"/>
+            <text x="75"  y="78"  text-anchor="middle" class="step-num">STAGE 1</text>
+            <text x="75"  y="98"  text-anchor="middle" class="step-lbl">phish / RCE</text>
+            <text x="75"  y="116" text-anchor="middle" class="step-sub">first foothold</text>
+          </g>
+          <line x1="130" y1="95" x2="148" y2="95" class="conn" marker-end="url(#arrK)"/>
+
+          <g>
+            <rect x="150" y="60" width="110" height="70" rx="4" class="step-box"/>
+            <text x="205" y="78"  text-anchor="middle" class="step-num">STAGE 2</text>
+            <text x="205" y="98"  text-anchor="middle" class="step-lbl">LDAP recon</text>
+            <text x="205" y="116" text-anchor="middle" class="step-sub">BloodHound</text>
+          </g>
+          <line x1="260" y1="95" x2="278" y2="95" class="conn" marker-end="url(#arrK)"/>
+
+          <g>
+            <rect x="280" y="60" width="110" height="70" rx="4" class="step-box"/>
+            <text x="335" y="78"  text-anchor="middle" class="step-num">STAGE 3</text>
+            <text x="335" y="98"  text-anchor="middle" class="step-lbl">cred theft</text>
+            <text x="335" y="116" text-anchor="middle" class="step-sub">kerberoast · AS-REP</text>
+          </g>
+          <line x1="390" y1="95" x2="408" y2="95" class="conn" marker-end="url(#arrK)"/>
+
+          <g>
+            <rect x="410" y="60" width="110" height="70" rx="4" class="step-box"/>
+            <text x="465" y="78"  text-anchor="middle" class="step-num">STAGE 4</text>
+            <text x="465" y="98"  text-anchor="middle" class="step-lbl">lateral move</text>
+            <text x="465" y="116" text-anchor="middle" class="step-sub">PsExec · WinRM · RDP</text>
+          </g>
+          <line x1="520" y1="95" x2="538" y2="95" class="conn" marker-end="url(#arrK)"/>
+
+          <g>
+            <rect x="540" y="60" width="110" height="70" rx="4" class="step-box"/>
+            <text x="595" y="78"  text-anchor="middle" class="step-num">STAGE 5</text>
+            <text x="595" y="98"  text-anchor="middle" class="step-lbl">priv. escalation</text>
+            <text x="595" y="116" text-anchor="middle" class="step-sub">DCSync · misconfig</text>
+          </g>
+          <line x1="650" y1="95" x2="668" y2="95" class="conn" marker-end="url(#arrK)"/>
+
+          <g>
+            <rect x="670" y="55" width="70" height="80" rx="6" class="step-box-end"/>
+            <text x="705" y="76"  text-anchor="middle" class="step-num" fill="#ff6b6b">★ END</text>
+            <text x="705" y="98"  text-anchor="middle" class="end-lbl">DA</text>
+            <text x="705" y="116" text-anchor="middle" class="step-sub">domain owned</text>
+          </g>
+
+          <!-- annotation: persistence loops back -->
+          <path d="M 705 135 Q 705 180 360 180 Q 75 180 75 135" fill="none" stroke="#c084fc" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#arrK)"/>
+          <text x="380" y="200" text-anchor="middle" class="step-sub" style="fill:#c084fc;">+ persistence: Golden Ticket lets the attacker return to any earlier stage at will</text>
+        </svg>
+        <figcaption>The standard AD kill chain. Each stage is a published technique with named tools and detections. The dashed line is why DA matters — it's not a victory, it's a foothold that never expires.</figcaption>
+      </figure>
+
+      <p>Plain version:</p>
+      <ol>
+        <li><strong>Get in.</strong> Phishing email, exposed VPN, a CVE on the Citrix box facing the internet. Almost never AD's fault.</li>
+        <li><strong>Look around.</strong> Run BloodHound or roll your own LDAP queries. Build a map of users, groups, computers, ACLs.</li>
+        <li><strong>Get credentials.</strong> Kerberoast every service account, AS-REP-roast every legacy account, crack the hashes offline. Maybe dump <code>lsass.exe</code> on a workstation for cached creds. Maybe NTLM-relay your way to a server's machine account.</li>
+        <li><strong>Move sideways.</strong> Use the new creds to log into other machines. Repeat steps 2-3 from each new vantage point.</li>
+        <li><strong>Get to a Domain Admin.</strong> Sometimes you find one's cached creds. Sometimes BloodHound shows you a chain of "user → owns → group → owns → DA" that lets you walk there through misconfigured permissions.</li>
+        <li><strong>DCSync.</strong> Pull all the password hashes. Forge a Golden Ticket. You now have undetected, decade-long persistence in the environment.</li>
+      </ol>
+    </section>
+
+    <!-- §8 -->
+    <section>
+      <h2 id="deeper">going deeper<a class="anchor" href="#deeper">#</a></h2>
+
+      <p>If this clicked and you want more, here's where to keep going. None of these need money — but they each take time.</p>
+
+      <h3>read</h3>
+      <ul>
+        <li><strong>The "Active Directory Hardening" series by SpecterOps</strong> — the people behind BloodHound. Single best technical writing on AD security.</li>
+        <li><strong>Will Schroeder's blog (harmj0y.net)</strong> — the foundational papers on Kerberoasting, AS-REP, ACL abuse. Dense, worth it.</li>
+        <li><strong>"AD Attack Defense" by Sean Metcalf (adsecurity.org)</strong> — from a defender's angle, which is the same angle just facing the other way.</li>
+      </ul>
+
+      <h3>practice</h3>
+      <ul>
+        <li><strong>HackTheBox Pro Labs</strong> — Dante, Offshore, Cybernetics. Multi-machine AD networks. The closest thing to a real engagement you can do in a browser.</li>
+        <li><strong>TryHackMe</strong> — search "Active Directory" — there's a whole curated path.</li>
+        <li><strong>GOAD</strong> (Game of Active Directory) — a free, automated lab that spins up a vulnerable forest on your laptop. Set it up once and break it for weeks.</li>
+      </ul>
+
+      <h3>tools to actually know</h3>
+      <ul>
+        <li><code>BloodHound</code> + <code>SharpHound</code> — the map.</li>
+        <li><code>impacket</code> suite (<code>secretsdump</code>, <code>GetUserSPNs</code>, <code>GetNPUsers</code>, <code>psexec.py</code>) — the swiss army.</li>
+        <li><code>Rubeus</code> — Kerberos on Windows hosts.</li>
+        <li><code>mimikatz</code> — credential theft. Legendary, still works.</li>
+        <li><code>CrackMapExec</code> / <code>NetExec</code> — the sledgehammer for spraying creds across hosts.</li>
+      </ul>
+
+      <p style="margin-top:32px; color:var(--muted); font-style:italic;">
+        AD is huge — there's a lifetime of detail past this page. But everything you'll read from here on out fits onto the scaffold above: identity → directory → tickets → encrypted blobs → blobs that can be stolen or forged. If you ever feel lost in a paper, anchor back to one of those.
+      </p>
+    </section>
+
+  </article>
+</main>
+
+<footer class="primer-foot">
+  <span>primer · active-directory · sudobyter / smarter</span>
+  <span><a href="../">aliwaleed.xyz</a> · <code>&lt;/sudobyter&gt;</code></span>
+</footer>
+
+<script>
+  // Reading progress bar
+  (function () {
+    const bar = document.getElementById('progress');
+    const article = document.querySelector('.primer-article');
+    function update() {
+      const rect = article.getBoundingClientRect();
+      const total = rect.height - window.innerHeight;
+      const passed = Math.min(Math.max(-rect.top, 0), total);
+      const pct = total > 0 ? (passed / total) * 100 : 0;
+      bar.style.setProperty('--progress', pct.toFixed(1) + '%');
+    }
+    window.addEventListener('scroll', update, { passive: true });
+    window.addEventListener('resize', update);
+    update();
+  })();
+
+  // TOC scrollspy
+  (function () {
+    const links = document.querySelectorAll('#toc a[href^="#"]');
+    const targets = [...links].map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);
+    if (!targets.length) return;
+
+    const byId = new Map();
+    targets.forEach((el, i) => byId.set(el.id, links[i]));
+
+    const io = new IntersectionObserver((entries) => {
+      // pick the entry closest to top that's intersecting
+      const visible = entries.filter(e => e.isIntersecting)
+        .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+      if (!visible.length) return;
+      links.forEach(l => l.classList.remove('active'));
+      const link = byId.get(visible[0].target.id);
+      if (link) link.classList.add('active');
+    }, { rootMargin: '-80px 0px -60% 0px', threshold: 0 });
+
+    targets.forEach(t => io.observe(t));
+  })();
+</script>
+</body>
+</html>
