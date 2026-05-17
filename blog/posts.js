@@ -12,7 +12,7 @@ window.BLOG_POSTS = [
         tags: ['tryhackme', 'reverse-engineering', 'binary-ninja', 'elf'],
         excerpt: 'TryHackMe / Reverse Elf Files. From `file crackme1` to the flag: stack-resident constants, a single-byte offset check, and reading x86 instead of running it.',
         readMin: 6,
-        body: String.raw`
+        body: `
 **Platform:** TryHackMe · **Room:** Reverse Elf Files · **Tools:** Binary Ninja · **Arch:** ELF x86-64
 
 This was my very first reverse engineering challenge. After spending most of my time on Active Directory, network, and web, popping open a disassembler felt like an entirely different sport — the kind where it actually *feels* like you're tearing something open instead of poking at it from the outside. This is the writeup of how I went from \`file crackme1\` to the flag.
@@ -25,7 +25,7 @@ crackme1: ELF 64-bit LSB executable, x86-64, version 1 (SYSV),
           dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2,
           for GNU/Linux 2.6.32, not stripped
 
-$ strings crackme1 | grep -E '\.c$|puts|memset'
+$ strings crackme1 | grep -E '\\.c$|puts|memset'
 babys_first_elf.c
 puts@@GLIBC_2.2.5
 memset@@GLIBC_2.2.5
