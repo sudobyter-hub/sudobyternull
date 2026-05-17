@@ -18,6 +18,18 @@ window.renderMarkdown = function renderMarkdown(src) {
         return `\x00CODEBLOCK${codeBlocks.length - 1}\x00`;
     });
 
+    // 2b) Extract images BEFORE escapeHtml so caption quotes survive
+    const images = [];
+    src = src.replace(/!\[([^\]]*)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)/g, (m, alt, srcUrl, cap) => {
+        if (!/^(\/|\.\.?\/|[a-z0-9_-]+\/|[a-z0-9_-]+\.(png|jpe?g|gif|svg|webp))/i.test(srcUrl)) return m;
+        images.push({
+            src: srcUrl,
+            alt: escapeHtml(alt),
+            cap: cap ? escapeHtml(cap) : ''
+        });
+        return `\x00IMAGE${images.length - 1}\x00`;
+    });
+
     // 3) Escape remaining HTML
     src = escapeHtml(src);
 
@@ -72,7 +84,13 @@ window.renderMarkdown = function renderMarkdown(src) {
         const trimmed = chunk.trim();
         if (!trimmed) return '';
         // already a block element?
-        if (/^<(h\d|ul|ol|pre|blockquote|table|hr|\x00CODEBLOCK)/.test(trimmed)) return trimmed;
+        if (/^<(h\d|ul|ol|pre|blockquote|table|hr)/.test(trimmed)) return trimmed;
+        // code-block-only paragraph → leave placeholder; restored to <pre> in step 11
+        if (/^(\x00CODEBLOCK\d+\x00\s*)+$/.test(trimmed)) return trimmed;
+        // image-only paragraph → render figures directly (block-level)
+        if (/^(\x00IMAGE\d+\x00\s*)+$/.test(trimmed)) {
+            return trimmed.replace(/\x00IMAGE(\d+)\x00/g, (_, i) => imgFigure(images[+i]));
+        }
         return `<p>${inline(trimmed.replace(/\n/g, ' '))}</p>`;
     }).join('\n');
 
@@ -83,8 +101,21 @@ window.renderMarkdown = function renderMarkdown(src) {
         return `<pre><code${langClass}>${code}</code></pre>`;
     });
 
+    // 12) Restore any images left inline inside text paragraphs → bare <img>
+    src = src.replace(/\x00IMAGE(\d+)\x00/g, (_, i) => imgInline(images[+i]));
+
     return src;
 };
+
+function imgFigure({ src, alt, cap }) {
+    return `<figure class="md-figure"><img src="${src}" alt="${alt}" loading="lazy">` +
+           (cap ? `<figcaption>${cap}</figcaption>` : '') +
+           `</figure>`;
+}
+
+function imgInline({ src, alt }) {
+    return `<img src="${src}" alt="${alt}" loading="lazy" class="md-img-inline">`;
+}
 
 function escapeHtml(s) {
     return s
