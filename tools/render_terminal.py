@@ -187,6 +187,7 @@ def render_meme(top_text, bottom_text, out_path, accent=AMBER, tag="// pov"):
 # --- the actual content for the writeup --------------------------------------
 
 OUT = Path(__file__).resolve().parent.parent / "img" / "blog" / "crackme1"
+OUT_SMARTER = Path(__file__).resolve().parent.parent / "img" / "smarter" / "kerberoasted"
 
 def gen_file_cmd():
     P = ("$ ", GREEN)
@@ -341,6 +342,50 @@ def gen_memes():
     )
 
 
+def gen_rubeus_stats():
+    """Rubeus.exe kerberoast /stats — Kerberoastable account survey output."""
+    P  = ("PS> ", GREEN)
+    title = "[*] ", AMBER
+    info  = ("[*] ", BLUE)
+
+    rows = [
+        [P, (".\\Rubeus.exe", MAGENTA), (" kerberoast ", FG), ("/stats", AMBER)],
+        [("", FG)],
+        [("[*] Kerberoastable User Statistics", AMBER)],
+        [("[*] Searching domain: corp.local", MUTED)],
+        [("", FG)],
+        [(" sAMAccountName     ", GREEN_DIM), ("|  pwdLastSet         ", GREEN_DIM),
+         ("|  SPN                              ", GREEN_DIM)],
+        [(" ----------------   ", MUTED), ("+ ------------------   ", MUTED),
+         ("+ --------------------------------- ", MUTED)],
+        [(" svc-backup        ", FG), ("|  ", MUTED),
+         ("2014-03-15 09:22  ", AMBER), ("|  ", MUTED),
+         ("MSSQLSvc/backup01:1433             ", BLUE)],
+        [(" sqlsvc            ", FG), ("|  ", MUTED),
+         ("2009-11-02 14:08  ", RED), ("|  ", MUTED),
+         ("MSSQLSvc/sqlsrv01:1433             ", BLUE)],
+        [(" webapp-svc        ", FG), ("|  ", MUTED),
+         ("2019-06-30 11:45  ", AMBER), ("|  ", MUTED),
+         ("HTTP/intranet.corp.local           ", BLUE)],
+        [(" iis-pool-svc      ", FG), ("|  ", MUTED),
+         ("2021-04-12 16:32  ", AMBER), ("|  ", MUTED),
+         ("HTTP/portal.corp.local             ", BLUE)],
+        [(" mssql-managed$    ", FG), ("|  ", MUTED),
+         ("2026-04-01 02:00  ", GREEN), ("|  ", MUTED),
+         ("MSSQLSvc/db04:1433  (gMSA)         ", MUTED)],
+        [("", FG)],
+        [("[+] Total Kerberoastable: ", GREEN), ("5", AMBER)],
+        [("[+] Quickest win (sort by pwdLastSet): ", GREEN), ("sqlsvc", AMBER), ("  ← roast this first.", MUTED)],
+    ]
+    render(rows, title="beacon — Rubeus kerberoast /stats",
+           out_path=str(OUT_SMARTER / "01_rubeus_stats.png"),
+           annotations=[
+               {"row": 8, "kind": "arrow",
+                "label": "← password from 2009 · the prime target",
+                "color": RED},
+           ])
+
+
 if __name__ == "__main__":
     gen_file_cmd()
     gen_strings_cmd()
@@ -349,4 +394,5 @@ if __name__ == "__main__":
     gen_python_decode()
     gen_run_check()
     gen_memes()
-    print("\nall assets generated under img/blog/crackme1/")
+    gen_rubeus_stats()
+    print("\nall assets generated under img/blog/crackme1/ and img/smarter/kerberoasted/")

